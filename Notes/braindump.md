@@ -2,6 +2,13 @@
 
 **The braindump is a repository for the fleeting thoughts and code that extends your working memory. Remember that internet might not work in the train, so plan ahead for something to do if you're bent on working.**
 
+# Small changes
+testthat/test_getBatch.R: data("ThreeBatchData", package = "batchCorr")
+- remove package = "batchCorr"
+remove "context" from testthat files
+remove the stringr dependency in test_peakInfo.R
+put match_args and na dataframe/matrix checks in the functions
+
 Backwards compatibility with not exporting the low-level functions?
 
 The normalizeBatches results in 202 warnings in the standalone example, and 5 warnings in the vignette. This may be because of improved quality and filtering of features in the vignette?
