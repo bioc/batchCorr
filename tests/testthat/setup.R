@@ -1,3 +1,4 @@
+set.seed(2024)
 batchB <- getBatch(peakTable = PTfill, meta = meta, 
                    batch = meta$batch, select = 'B')
 batchF <- getBatch(peakTable = PTfill, meta = meta, 
@@ -26,12 +27,22 @@ clustered <- clust(QCObject$inj, QCObject$Feats,
                    modelNames = c("VVE", "VEE"),
                    G = seq(5,35,by=10), report = FALSE)               
 calculated_loess <- driftCalc(clustered, smoothFunc = "loess", 
-                              report= FALSE)
+                              spar = 0.2, report= FALSE)
 calculated_spline <- driftCalc(clustered, smoothFunc = "spline", 
-                               report= FALSE)
+                               spar = 0.2, report= FALSE)
 BatchObject = makeBatchObject(peakTable = batchB$peakTable, 
                               inj = batchB$meta$inj, QCObject = QCObject)  
 corrected_none <- driftCorr(QCDriftCalc = calculated_spline, 
                             CorrObj = BatchObject, report = FALSE)
-cleaned_none <- cleaned_none <- cleanVar(corrected_none, report = FALSE)
+cleaned_none <- cleanVar(corrected_none, CVlimit = 0.3, report = FALSE)
+
+# alignBatches low-level walkthrough
+peakIn <- peakInfo(PT = PTnofill, sep = '@', start = 3)  
+
+bFlag <- batchFlag(PTnofill = PTnofill, batch = meta$batch, 
+                   sampleGroup = meta$grp, peakInfo = peakIn, NAhard = 0.8)
+                   
+aIQ <- alignIndex(batchflag = bFlag, grpType = "QC", mzdiff = 0.002, rtdiff = 15, report = FALSE)            
+
+bAlign <- batchAlign(batchflag = bFlag, alignindex = aIQ, peaktable_filled = PTfill, batch = meta$batch)
 
