@@ -11,6 +11,7 @@
 #' @param spar smoothing parameter for spline or loess (defaults to 0.2)
 #' @param CVlimit QC feature CV limit as final feature inclusion criterion
 #' @param report Boolean whether to print pdf reports of drift models
+#' @param reportPath directory path for report
 #'
 #' @return A driftCorrection object
 #' @return $actionInfo (to see what happened to each cluster)
@@ -19,6 +20,7 @@
 #' @export
 #'
 #' @examples
+#' \dontshow{.old_wd <- setwd(tempdir())}
 #' data('ThreeBatchData') 
 #' set.seed(2024)
 #' # Get batches
@@ -30,21 +32,35 @@
 #' BCorr <- correctDrift(peakTable = batchB$peakTable, 
 #'                       injections = batchB$meta$inj, 
 #'                       sampleGroups = batchB$meta$grp, QCID = 'QC', 
-#'                       G = seq(5,35,by=3), modelNames = c('VVE', 'VEE'))
+#'                       G = seq(5,35,by=3), modelNames = c('VVE', 'VEE'),
+#'                       reportPath = "drift_report/")
 #' # More unbiased drift correction using QCs & external reference samples
 #' FCorr <- correctDrift(peakTable = batchF$peakTable, 
 #'                       injections = batchF$meta$inj,
 #'                       sampleGroups = batchF$meta$grp, QCID = 'QC',
 #'                       RefID='Ref', G = seq(5,35,by=3), 
-#'                       modelNames = c('VVE', 'VEE'))
+#'                       modelNames = c('VVE', 'VEE'), 
+#'                       reportPath = "drift_report/")
 #' # Merge batches for batch normalization, for example
 #' mergedData <- mergeBatches(list(BCorr, FCorr))
-correctDrift <- function(peakTable, injections, sampleGroups, QCID='QC', RefID='none', modelNames = c('VVV','VVE','VEV','VEE','VEI','VVI','VII'), G = seq(5,35,by=10), smoothFunc = "spline", spar = 0.2, CVlimit = 0.3, report = TRUE) {
+#' \dontshow{setwd(.old_wd)}
+correctDrift <- function(peakTable, injections, sampleGroups, QCID='QC', RefID='none', modelNames = c('VVV','VVE','VEV','VEE','VEI','VVI','VII'), G = seq(5,35,by=10), smoothFunc = "spline", spar = 0.2, CVlimit = 0.3, report = TRUE, reportPath = NULL) {
   # Some basic sanity check
   if (nrow(peakTable)!=length(injections)) stop ('nrow(peakTable) not equal to length(injections)')
   if (is.null(colnames(peakTable))) stop ('All features/variables need to have unique names')
   if (length(sampleGroups)!=length(injections)) stop ('length(sampleGroups) not equal to length(injections)')
   if(!identical(sort(injections),injections)) stop ('injection sequence is not in order\nPlease resort peakTable, injections and sampleGroups accordingly')
+  if (report & is.null(reportPath)) stop("Argument 'reportPath' is missing")
+  if (report & !is.null(reportPath)) {
+    if (!endsWith(reportPath, "/")) {
+      message("Adding a slash to file path to allow proper folder structure")
+      reportPath <- paste0(reportPath, "/")
+    }
+    if (!file.exists(reportPath)) {
+      message("Creating folder ", reportPath)
+      dir.create(reportPath, recursive = TRUE)
+    }
+  }
   meta=data.frame(injections,sampleGroups)
   # Prepare QC data
   batchQC=.getGroup(peakTable=peakTable, meta=meta, sampleGroup=sampleGroups, select=QCID) # Extract QC info
@@ -55,9 +71,9 @@ correctDrift <- function(peakTable, injections, sampleGroups, QCID='QC', RefID='
   if (RefID!="none") {
     batchRef=.getGroup(peakTable=peakTable, meta=meta, sampleGroup=sampleGroups, select=RefID) # Extract Ref info
     RefObject=makeBatchObject(peakTable = batchRef$peakTable, inj = batchRef$meta$inj, QCObject = QCObject) # Prepare Ref object for drift correction
-    Corr=driftWrap(QCObject = QCObject, BatchObject = BatchObject, RefObject = RefObject, modelNames = modelNames, G = G, smoothFunc = smoothFunc, spar = spar, CVlimit = CVlimit, report = report) # Perform drift correction
+    Corr=driftWrap(QCObject = QCObject, BatchObject = BatchObject, RefObject = RefObject, modelNames = modelNames, G = G, smoothFunc = smoothFunc, spar = spar, CVlimit = CVlimit, report = report, reportPath = reportPath) # Perform drift correction
   } else {
-    Corr=driftWrap(QCObject = QCObject, BatchObject = BatchObject, modelNames = modelNames, G = G, smoothFunc = smoothFunc, spar = spar, CVlimit = CVlimit, report = report) # Perform drift correction
+    Corr=driftWrap(QCObject = QCObject, BatchObject = BatchObject, modelNames = modelNames, G = G, smoothFunc = smoothFunc, spar = spar, CVlimit = CVlimit, report = report, reportPath = reportPath) # Perform drift correction
   }
   return(Corr)
 }
