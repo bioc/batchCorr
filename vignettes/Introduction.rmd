@@ -82,7 +82,8 @@ peakIn <- peakInfo(PT = PTnofill, sep = '@', start = 3)
 # Perform multi-batch alignment
 alignBat <- alignBatches(peakInfo = peakIn, PeakTabNoFill = PTnofill,
                          PeakTabFilled = PTfill, batches = meta$batch, 
-                         sampleGroups = meta$grp, selectGroup = 'QC')
+                         sampleGroups = meta$grp, selectGroup = 'QC',
+                         report = FALSE)
 # Extract new peak table
 PT=alignBat$PTalign
 ```
@@ -114,7 +115,8 @@ batchB <- getBatch(peakTable = PT, meta = meta,
 BCorr <- correctDrift(peakTable = batchB$peakTable, 
                       injections = batchB$meta$inj, 
                       sampleGroups = batchB$meta$grp, QCID = 'QC', 
-                      G = seq(5,35,by=3), modelNames = c('VVE', 'VEE'))
+                      G = seq(5,35,by=3), modelNames = c('VVE', 'VEE'),
+                      report = FALSE)
 # Batch F
 batchF <- getBatch(peakTable = PT, meta = meta, 
                    batch = meta$batch, select = 'F')
@@ -122,7 +124,8 @@ FCorr <- correctDrift(peakTable = batchF$peakTable,
                       injections = batchF$meta$inj, 
                       sampleGroups = batchF$meta$grp, 
                       QCID = 'QC', G = seq(5,35,by=3), 
-                      modelNames = c('VVE', 'VEE'))
+                      modelNames = c('VVE', 'VEE'), 
+                      report = FALSE)
 # Batch H
 batchH <- getBatch(peakTable = PT, meta = meta, 
                    batch = meta$batch, select = 'H')
@@ -130,7 +133,8 @@ HCorr <- correctDrift(peakTable = batchH$peakTable,
                       injections = batchH$meta$inj, 
                       sampleGroups = batchH$meta$grp, 
                       QCID = 'QC', G = seq(5,35,by=3),
-                      modelNames = c('VVE', 'VEE'))
+                      modelNames = c('VVE', 'VEE'),
+                      report = FALSE)
 ```
 
 ## Between-batch normalization
