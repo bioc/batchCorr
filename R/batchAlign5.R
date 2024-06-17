@@ -37,25 +37,18 @@ grabAlign=function(XS,batch,grp) {
 #' @param NAhard proportion of NAs within batch for feature to be considered missing
 #' @param batch vector (length = nSamples) containing batch information (e.g. A, B, C)
 #' @param sampleGroup vector (length = nSamples) containing sample group information (e.g. QC, Sample, Reference)
-#' @param NAsoft experimental: Use at own risk
-#' @param quantileSoft experimental: Use at own risk
 #'
 #' @return meta: metadata aggretated by batch x sample type
 #' @return flagHard: a table of presentness/missingness per batch x sample type
 #' @return mz: m/z values of the features
 #' @return rt: rt values of the features
-#' @return flagAll: experimental: Use at own risk
-#' @return flagSoft: experimental: Use at own risk
-#' @return flagType: experimental: Use at own risk
-#' @importFrom stats quantile
 #' @noRd
-batchFlag=function(PTnofill,batch,sampleGroup,peakInfo,NAhard=0.8,NAsoft=0.5,quantileSoft=0.1) {
-  quant=quantile(PTnofill,quantileSoft,na.rm=TRUE)
+batchFlag=function(PTnofill,batch,sampleGroup,peakInfo,NAhard) {
   uniqBatch=unique(batch)
   uniqGrp=unique(sampleGroup)
   n=length(uniqBatch)*length(uniqGrp)
-  flagAll=flagType=flagHard=flagSoft=matrix(nrow=n,ncol=ncol(PTnofill))
-  colnames(flagAll)=colnames(flagType)=colnames(PTnofill)
+  flagHard=matrix(nrow=n,ncol=ncol(PTnofill))
+  colnames(flagHard)=colnames(PTnofill)
   batchMeta=matrix(nrow=n,ncol=2)
   colnames(batchMeta)=c('batch','sampleGroup')
   i=0
@@ -64,19 +57,13 @@ batchFlag=function(PTnofill,batch,sampleGroup,peakInfo,NAhard=0.8,NAsoft=0.5,qua
       i=i+1
       PTsub=PTnofill[batch==b & sampleGroup==g,,drop=FALSE]
       NAs=apply(PTsub,2,function(x) sum(is.na(x))/length(x))
-      intMean=apply(PTsub,2,function(x) mean(x,na.rm=TRUE))
-      flagAll[i,]=ifelse(NAs>=NAhard,1,ifelse(NAs>=NAsoft & intMean<quant,1,0))
-      flagType[i,]=ifelse(NAs>=NAhard,'hard',ifelse(NAs>=NAsoft & intMean<quant,'soft',''))
       flagHard[i,]=ifelse(NAs>=NAhard,1,0)
-      flagSoft[i,]=flagAll[i,]-flagHard[i,]
       batchMeta[i,]=c(b,g)
     }
   }
   # Convert flags to !NA flags
-  flagAll=1-flagAll
   flagHard=1-flagHard
-  flagSoft=1-flagSoft
-  return(batchFlag=list(meta=batchMeta,flagAll=flagAll,flagType=flagType,flagHard=flagHard,flagSoft=flagSoft,mz=peakInfo[,1],rt=peakInfo[,2]))
+  return(batchFlag=list(meta=batchMeta,flagHard=flagHard,mz=peakInfo[,1],rt=peakInfo[,2]))
 }
 
 #' BA: Find alignment candidates
@@ -91,7 +78,7 @@ batchFlag=function(PTnofill,batch,sampleGroup,peakInfo,NAhard=0.8,NAsoft=0.5,qua
 #' @return features: all features involved in possible alignments
 #' @return clusters: groups of features linked through mutual events
 #' @noRd
-align=function(flags,mz,rt,mzdiff=0.005,rtdiff=10) {
+align=function(flags,mz,rt, mzdiff, rtdiff) {
   misIndex=which(colSums(flags)!=nrow(flags) & colSums(flags)!=0) # Take out misalignment candidates
   event=list()
   c=0
@@ -263,7 +250,7 @@ clustSplit=function(clustFlags,mz,rt) {
 #' @param rtwidth plot span of rt
 #' @importFrom graphics points
 #' @noRd
-plotClust=function(batchflag,grpFlag,cluster,text,color=2,mzwidth=0.02,rtwidth=100) {
+plotClust=function(batchflag,grpFlag,cluster,text,color=2,mzwidth = 0.02,rtwidth = 100) {
   bF=batchflag
   mzspan=c(mean(cluster$mz)-mzwidth/2,mean(cluster$mz)+mzwidth/2)
   rtspan=c(mean(cluster$rt)-rtwidth/2,mean(cluster$rt)+rtwidth/2)
@@ -285,7 +272,6 @@ plotClust=function(batchflag,grpFlag,cluster,text,color=2,mzwidth=0.02,rtwidth=1
 #'
 #' alignIndex will find features systematically misaligned between batches using "sample type" information.
 #' @param batchflag a table of presentness/missingness per batch x sample type for the features within cluster
-#' @param flagType This is experimental. Use at your own risk.
 #' @param grpType sample type to be used to find batch alignments
 #' @param mzdiff maximum distance in m/z to be considered for alignment
 #' @param rtdiff maximum distance in rt to be considered for alignment
@@ -301,27 +287,22 @@ plotClust=function(batchflag,grpFlag,cluster,text,color=2,mzwidth=0.02,rtwidth=1
 #' @return oldClusters: clusters before splitting overcrowded clusters
 #' @importFrom grDevices dev.off pdf png 
 #' @noRd
-alignIndex=function(batchflag,flagType=c('Hard','Soft','All'),grpType='QC',mzdiff=0.005,rtdiff=10,report=TRUE,reportName='splits') {
+alignIndex=function(batchflag,grpType ,mzdiff, rtdiff, report, reportName='cluster_splits', reportPath) {
   bF=batchflag
-  if (missing(flagType)) flagType='Hard'
-  if (flagType=='Hard') grpSub=bF$flagHard[bF$meta[,2]==grpType,] # Take out matrix based on group type (such as QC or long-term Ref)
-  if (flagType=='Soft') grpSub=bF$flagSoft[bF$meta[,2]==grpType,] # Take out matrix based on group type (such as QC or long-term Ref)
-  if (flagType=='All') grpSub=bF$flagAll[bF$meta[,2]==grpType,] # Take out matrix based on group type (such as QC or long-term Ref)
+  if(!grpType %in% bF$meta[, "sampleGroup"]) {
+    stop("Group ", grpType," not in metadata.")
+  }
+  # Take out matrix based on group type (such as QC or long-term Ref)
+  grpSub=bF$flagHard[bF$meta[,2]==grpType,] 
   mz=bF$mz
   rt=bF$rt
   a2=a1=align(grpSub,mz,rt,mzdiff=mzdiff,rtdiff=rtdiff)
   a1Clust=a1$clusters
   if(is.null(a1Clust)) {
-    cat('\nIMPORTANT NOTIFICATION\n')
-    cat('\nThere are no alignment candidates. Therefore,\n')
-    cat('  between-batch alignment is not possible.\n')
-    cat('Consider expanding mzdiff and/or rtdiff\n')
-    cat('  of that correspondence is accurate between batches.\n')
-    cat('Returning NULL.\n')
-    return(NULL)
+    stop("There are no alignment candidates. Therefore, between-batch alignment is not possible. Consider expanding mzdiff and/or rtdiff.")
   }
   splits=which(a1Clust$dotProd!=0)
-  if (report==TRUE) pdf(file=paste(reportName,'.pdf',sep=''))
+  if (report) pdf(file=paste(reportPath, reportName,'.pdf',sep=''))
   for (s in splits) {
     cluster=a1$features[a1$features$cluster==s,]
     # print(cluster)
@@ -330,11 +311,13 @@ alignIndex=function(batchflag,flagType=c('Hard','Soft','All'),grpType='QC',mzdif
     flagSp=t(cluster[9:ncol(a1$features)])
     alignSplit=clustSplit(flagSp,mzSp,rtSp)
     text=paste('Original cluster',s)
-    if (report==TRUE) plotClust(bF,bF$meta[,2]==grpType,cluster,text=text,color=alignSplit+1)
+    if (report) {
+      plotClust(bF,bF$meta[,2]==grpType,cluster,text=text,color=alignSplit+1)
+    }
     newClust=ifelse(alignSplit==1,s,max(a2$features$cluster)+alignSplit-1)
     a2$features$cluster[a2$features$cluster==s]=newClust
   }
-  if (report==TRUE) dev.off()
+  if (report) dev.off()
   ### Remove duplicates
   a2$features=a2$features[a2$features$cluster%in%unique(a2$features$cluster[duplicated(a2$features$cluster)]),]
   a2$features=a2$features[order(a2$features$cluster),]
@@ -359,17 +342,15 @@ alignIndex=function(batchflag,flagType=c('Hard','Soft','All'),grpType='QC',mzdif
 #' @param batchflag a table of presentness/missingness per batch x sample type for the features within cluster
 #' @param alignindex An object (list) consisting of alignment information
 #' @param clust which cluster(s) to plot. If missing, plots all clusters.
-#' @param plotType Whether to plot internally ('plot'), to pdf ('pdf') or png ('png') file.
+#' @param plotType whether to plot to list ("plot") or to pdf ("pdf") Default: "plot"
 #' @param reportName name of plotfile
 #' @param mzwidth plot span of m/z
 #' @param rtwidth plot span of rt
 #' @noRd
-plotAlign=function(batchflag,alignindex,clust,plotType=c('plot','pdf','png'),reportName='clustPlot',mzwidth=0.02,rtwidth=100) {
-  if (missing(plotType)) plotType='plot'
+plotAlign=function(batchflag,alignindex,clust,reportName='aligned_clusters', reportPath) {
   aI=alignindex
   bF=batchflag
-  if (plotType=='pdf') pdf(file=paste(reportName,'.pdf',sep=''))
-  if (plotType=='png') png(filename=paste(reportName,'.png',sep=''))
+  pdf(file=paste(reportPath,reportName,'.pdf',sep=''))
   if (missing(clust)) {
     clustPlots=1:dim(aI$clusters)[1]
   } else clustPlots=clust
@@ -385,7 +366,7 @@ plotAlign=function(batchflag,alignindex,clust,plotType=c('plot','pdf','png'),rep
     text=paste('Cluster',c)
     plotClust(batchflag=bF,grpFlag=bF$meta[,2]==aI$grpType,cluster=cluster,text=text,color=2)
   }
-  if (plotType=='pdf' | plotType=='png') dev.off()
+  dev.off()
 }
 
 #' BA: Aggregate clustering information from two sample types

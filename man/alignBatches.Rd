@@ -10,10 +10,12 @@ alignBatches(
   PeakTabFilled,
   batches,
   sampleGroups,
-  selectGroup,
+  selectGroup = "QC",
+  NAhard = 0.8,
   mzdiff = 0.002,
   rtdiff = 15,
-  report = TRUE
+  report = TRUE,
+  reportPath = NULL
 )
 }
 \arguments{
@@ -29,11 +31,15 @@ alignBatches(
 
 \item{selectGroup}{Which sample type to base alignment on (e.g. "sample", "QC" or "Ref")}
 
+\item{NAhard}{proportion of NAs within batch for feature to be considered missing}
+
 \item{mzdiff}{Tolerance for difference in m/z}
 
 \item{rtdiff}{Tolerance for difference in retention time}
 
 \item{report}{Whether to export diagnostic plots into your work directory (defaults to TRUE)}
+
+\item{reportPath}{directory path for report}
 }
 \value{
 batchAlign Object
@@ -46,6 +52,7 @@ Returns NULL if no alignment candidates can be found
 Perform multi-batch alignment to merge features artificially split between batches
 }
 \examples{
+\dontshow{.old_wd <- setwd(tempdir())}
 data('ThreeBatchData')
 # Extract peakinfo (i.e. m/z and rt of features). These column names have 2
 # leading characters describing LC-MS mode -> start at 3
@@ -53,7 +60,9 @@ peakIn <- peakInfo(PT = PTnofill, sep = '@', start = 3)
 # Perform multi-batch alignment
 alignBat <- alignBatches(peakInfo = peakIn, PeakTabNoFill = PTnofill,
                          PeakTabFilled = PTfill, batches = meta$batch,
-                         sampleGroups = meta$grp, selectGroup = 'QC')
+                         sampleGroups = meta$grp, selectGroup = 'QC',
+                         reportPath = "drift_report/")
 # Extract new peak table
 PT <- alignBat$PTalign 
+\dontshow{setwd(.old_wd)}
 }

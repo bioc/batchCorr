@@ -46,7 +46,7 @@ rmsDist=function(mat) {
 #' @return clustTime: Time required for the clustering
 #' @import mclust
 #' @noRd
-clust=function(QCInjs,QCFeats,modelNames=c('VVE'),G=seq(1,52,by=3),report=FALSE) {
+clust=function(QCInjs,QCFeats,modelNames,G,report, reportPath) {
   if (length(QCInjs)!=nrow(QCFeats)) stop ('nrow(QCFeats) not equal to length(QCInjs)')
 	# modelNames='VVV'
 	# modelNames=c('VEV','VVV')
@@ -64,7 +64,7 @@ clust=function(QCInjs,QCFeats,modelNames=c('VVE'),G=seq(1,52,by=3),report=FALSE)
 	endTime=proc.time()[3]
 	sumTime=endTime-startTime
 	if (report==TRUE) {
-		pdf(file=paste('cluster_BIC_',format(Sys.time(),format="%y%m%d_%H%M"),'.pdf',sep=''))
+		pdf(file=paste(reportPath, 'cluster_BIC_', format(Sys.time(), format="%y%m%d_%H%M"), '.pdf', sep=''))
 		plot(mclBIC)
 		dev.off()
 	}
@@ -91,8 +91,7 @@ clust=function(QCInjs,QCFeats,modelNames=c('VVE'),G=seq(1,52,by=3),report=FALSE)
 #' @importFrom graphics lines matplot par
 #' @import reshape
 #' @noRd
-## Calculate drift clusters
-driftCalc=function(QCClust,smoothFunc=c('spline','loess'),spar=0.2,report=FALSE) {
+driftCalc=function(QCClust,smoothFunc=c('spline','loess'),spar,report, reportPath) {
   smoothFunc <- match.arg(smoothFunc)
 	MC=QCClust$clust
 	QCInjs=QCClust$QCInjs
@@ -110,7 +109,7 @@ driftCalc=function(QCClust,smoothFunc=c('spline','loess'),spar=0.2,report=FALSE)
 		rownames(ratios)=paste('cluster',1:nclass,sep='')
 		colnames(ratios)=c('raw.15','corr.15','raw.2','corr.2')
 	if (report==TRUE) {
-		pdf(file=paste('cluster_G',nclass,'_',format(Sys.time(),format="%y%m%d_%H%M"),'.pdf',sep=''))
+		pdf(file=paste(reportPath, 'cluster_G', nclass, '_', format(Sys.time(), format="%y%m%d_%H%M"), '.pdf', sep=''))
 		par(mfrow=c(2,1))
 		par(mar=c(2,4,2,0))
 	}
@@ -191,11 +190,8 @@ driftCalc=function(QCClust,smoothFunc=c('spline','loess'),spar=0.2,report=FALSE)
 #' @importFrom grDevices rgb
 #' @noRd
 ## Perform drift correction for clusters IF rmsdRef is improved
-driftCorr=function(QCDriftCalc,refList=NULL,refType=c('none','one','many'),CorrObj=NULL,report=FALSE) {
+driftCorr=function(QCDriftCalc,refList=NULL,refType=c('none','one'),CorrObj=NULL,report, reportPath) {
 	if (missing(refType)) refType='none'
-	if (refType=='many') {
-		stop('Multiple reference samples not yet implemented\n')
-	}
 	deltaDist=QCDriftCalc$deltaDist
 	varClust=QCDriftCalc$varClust
 	removeFeats=QCDriftCalc$removeFeats
@@ -261,7 +257,7 @@ driftCorr=function(QCDriftCalc,refList=NULL,refType=c('none','one','many'),CorrO
 		}
 	}
 	if (report==TRUE) {
-		pdf(file=paste('Hist_Corrected_',format(Sys.time(),format="%y%m%d_%H%M"),'.pdf',sep=''))
+		pdf(file=paste(reportPath, 'Hist_Corrected_', format(Sys.time(),format="%y%m%d_%H%M"), '.pdf', sep=''))
 	  if (!is.null(removeFeats)) {
 	    cvBefore <- cv(QCDriftCalc$QCFeats)
 	  } else {
@@ -312,7 +308,7 @@ driftCorr=function(QCDriftCalc,refList=NULL,refType=c('none','one','many'),CorrO
 #' @return QCcvs: CVs per features kept within the final peaktable
 #' @noRd
 ## Remove individual variables with CV>limit
-cleanVar=function(QCCorr,CVlimit=.2,report=FALSE) {
+cleanVar=function(QCCorr,CVlimit,report=FALSE, reportPath) {
 	QCFeats=QCCorr$QCFeats
 	removeFeats=QCCorr$removeFeats
 	if (!is.null(removeFeats)) {
@@ -336,7 +332,7 @@ cleanVar=function(QCCorr,CVlimit=.2,report=FALSE) {
 	cvFeatsFinal=mean(cv(QCFeatsFinal)) # 0.1070
 	QCcvs=data.frame(cvFeats=cvFeats,cvFeatsClean=cvFeatsClean,cvFeatsCorr=cvFeatsCorr,cvFeatsFinal=cvFeatsFinal)
 	if (report==TRUE) {
-		pdf(file=paste('Hist_Final_',format(Sys.time(),format="%y%m%d_%H%M"),'.pdf',sep=''))
+		pdf(file=paste(reportPath, 'Hist_Final_',format(Sys.time(),format="%y%m%d_%H%M"),'.pdf',sep=''))
 		histCombined <- hist(c(cv(QCFeatsClean), cv(QCFeatsFinal)), 30, plot=FALSE)
 		breaks <- histCombined$breaks
 		histBefore <- hist(cv(QCFeatsClean), breaks = breaks, plot=FALSE)
@@ -396,12 +392,12 @@ cleanVar=function(QCCorr,CVlimit=.2,report=FALSE) {
 #'
 #' @return A drift corrected object with QC features CV<limit containing final peak table
 #' @noRd
-driftWrap=function(QCObject, modelNames=NULL, G=seq(1,40,by=3), BatchObject, RefObject=NULL, smoothFunc, spar, CVlimit=0.3, report=FALSE) {
+driftWrap=function(QCObject, modelNames, G, BatchObject, RefObject=NULL, smoothFunc, spar, CVlimit, report, reportPath) {
   if (is.null(RefObject)) refType='none' else refType='one'
-	driftList=clust(QCObject$inj,QCObject$Feats,modelNames=modelNames, G=G, report=report)
-	driftList=driftCalc(driftList, smoothFunc = smoothFunc, spar = spar, report=report)
-	driftList=driftCorr(QCDriftCalc = driftList,refList=RefObject,refType=refType,CorrObj=BatchObject,report=report)
-	driftList=cleanVar(driftList,CVlimit=CVlimit,report=report)
+	driftList=clust(QCObject$inj,QCObject$Feats,modelNames=modelNames, G=G, report=report, reportPath = reportPath)
+	driftList=driftCalc(driftList, smoothFunc = smoothFunc, spar = spar, report=report, reportPath)
+	driftList=driftCorr(QCDriftCalc = driftList,refList=RefObject,refType=refType,CorrObj=BatchObject,report=report, reportPath = reportPath)
+	driftList=cleanVar(driftList,CVlimit=CVlimit,report=report, reportPath=reportPath)
 	return(driftList)
 }
 

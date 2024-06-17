@@ -15,7 +15,8 @@ correctDrift(
   smoothFunc = "spline",
   spar = 0.2,
   CVlimit = 0.3,
-  report = TRUE
+  report = TRUE,
+  reportPath = NULL
 )
 }
 \arguments{
@@ -40,6 +41,8 @@ correctDrift(
 \item{CVlimit}{QC feature CV limit as final feature inclusion criterion}
 
 \item{report}{Boolean whether to print pdf reports of drift models}
+
+\item{reportPath}{directory path for report}
 }
 \value{
 A driftCorrection object
@@ -54,6 +57,7 @@ $testFeatsFinal (to extract drift-corrected data which pass the criterion that Q
 Within-batch signal intensity drift correction
 }
 \examples{
+\dontshow{.old_wd <- setwd(tempdir())}
 data('ThreeBatchData') 
 set.seed(2024)
 # Get batches
@@ -65,13 +69,16 @@ batchF <- getBatch(peakTable = PTfill, meta = meta,
 BCorr <- correctDrift(peakTable = batchB$peakTable, 
                       injections = batchB$meta$inj, 
                       sampleGroups = batchB$meta$grp, QCID = 'QC', 
-                      G = seq(5,35,by=3), modelNames = c('VVE', 'VEE'))
+                      G = seq(5,35,by=3), modelNames = c('VVE', 'VEE'),
+                      reportPath = "drift_report/")
 # More unbiased drift correction using QCs & external reference samples
 FCorr <- correctDrift(peakTable = batchF$peakTable, 
                       injections = batchF$meta$inj,
                       sampleGroups = batchF$meta$grp, QCID = 'QC',
                       RefID='Ref', G = seq(5,35,by=3), 
-                      modelNames = c('VVE', 'VEE'))
+                      modelNames = c('VVE', 'VEE'), 
+                      reportPath = "drift_report/")
 # Merge batches for batch normalization, for example
 mergedData <- mergeBatches(list(BCorr, FCorr))
+\dontshow{setwd(.old_wd)}
 }
