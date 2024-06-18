@@ -11,7 +11,7 @@ Description: From the perspective of metabolites as the continuation of the cent
 License: GPL-2
 biocViews: BiomedicalInformatics, Metabolomics, MassSpectrometry, BatchEffect, Normalization
 Depends: R (>= 4.4.0)
-Imports: reshape, mclust, BiocParallel, xcms
+Imports: reshape, mclust, BiocParallel
 Suggests: BiocStyle, knitr, testthat
 LazyData: FALSE
 RoxygenNote: 7.3.1
