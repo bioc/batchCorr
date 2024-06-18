@@ -1,33 +1,3 @@
-#' Get a peak table from an XCMS object
-#'
-#' peakTab will extract a peak table from an XCMS object with samples as rows and features as columns. Features are named by 'm/z@rt'
-#' @param XS an XCMS object
-#' @return a peak table with samples as rows and features as columns, features (colnames) named by 'm/z@rt'
-#' @import xcms
-#' @noRd
-peakTab=function(XS) {
-  pTab=peakTable(XS)
-  id=paste('RP',pTab$mz,'@',pTab$rt,sep='')
-  X=t(pTab[,-1:-13])
-  colnames(X)=id
-  return(X)
-}
-
-#' BA: Grab batch relevant data for a subtype of samples
-#'
-#' grabAlign will bring out sampletype:'grp' from batch:'batch' of an XCMS object
-#' @param XS an XSMS object
-#' @param batch a batch identifier
-#' @param grp a sample type identifier
-#' @return a peak table with samples as rows and features as columns, features (colnames) named by 'm/z@rt'
-#' @noRd
-grabAlign=function(XS,batch,grp) {
-  incl=(XS@phenoData[,1]==batch & XS@phenoData[,2]==grp)
-  peakTab=peakTab(XS)
-  QC=peakTab[incl,]
-  return(QC)
-}
-
 #' BA: Aggregate presense/missingness per batch
 #'
 #' batchFlag will aggregate presentness/missingness per feature at batch level within the combination: batch x sample type
@@ -367,30 +337,6 @@ plotAlign=function(batchflag,alignindex,clust,reportName='aligned_clusters', rep
     plotClust(batchflag=bF,grpFlag=bF$meta[,2]==aI$grpType,cluster=cluster,text=text,color=2)
   }
   dev.off()
-}
-
-#' BA: Aggregate clustering information from two sample types
-#'
-#' aggregateIndex will aggregate alignment indices IF present for both sample types
-#' @param aI1 an alignIndex object for sample type 1
-#' @param aI2 an alignIndex object for sample type 2
-#' @return An object (list) with aggregated alignment information
-#' @noRd
-aggregateIndex=function(aI1,aI2) {
-  list1=aI1$shift$list
-  list2=aI2$shift$list
-  lists=rbind(list1,list2)
-  grp1=as.character(aI1$shift$grp)
-  grp2=as.character(aI2$shift$grp)
-  grps=rbind(grp1,grp2)
-  ## Find conflicts
-  conflict=apply(lists,2,function(x) ifelse(x[1]==x[2],FALSE, ifelse(any(x==0),FALSE, TRUE)))
-  confClust=unique(as.numeric(lists[,conflict]))
-  lists[lists%in%confClust]=0
-  listNew=ifelse(list1==list2,list1,0)
-  grpNew=ifelse(list1==list2,paste(grp1,grp2,sep=''),'')
-  shift=data.frame(list=listNew,grp=grpNew)
-  return(list(shift=shift,shift1=aI1$shift,shift2=aI2$shift))
 }
 
 #' BA: Alignment of peaktable based on alignIndex and batchFlag data
