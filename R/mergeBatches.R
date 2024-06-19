@@ -13,28 +13,7 @@
 #' @return `batch` Batch identifier (per sample)
 #' @return `injection` Injection number (per sample)
 #'
-#' @examples \donttest{
-#' data('ThreeBatchData') 
-#' set.seed(2024)
-#' # Get batches
-#' batchB <- getBatch(peakTable = PTfill, meta = meta, 
-#'                    batch = meta$batch, select = 'B')
-#' batchF <- getBatch(peakTable = PTfill, meta = meta, 
-#'                    batch = meta$batch, select = 'F')
-#' # Drift correction using QCs
-#' BCorr <- correctDrift(peakTable = batchB$peakTable, 
-#'                       injections = batchB$meta$inj, 
-#'                       sampleGroups = batchB$meta$grp, QCID = 'QC', 
-#'                       G = seq(5,35,by=3), modelNames = c('VVE', 'VEE'))
-#' # More unbiased drift correction using QCs & external reference samples
-#' FCorr <- correctDrift(peakTable = batchF$peakTable, 
-#'                       injections = batchF$meta$inj,
-#'                       sampleGroups = batchF$meta$grp, QCID = 'QC',
-#'                       RefID='Ref', G = seq(5,35,by=3), 
-#'                       modelNames = c('VVE', 'VEE'))
-#' # Merge batches for batch normalization, for example
-#' mergedData <- mergeBatches(list(BCorr, FCorr))
-#' }
+#' @inherit correctDrift return examples
 #'
 #' @export
 mergeBatches <- function(batchList, qualRatio=0.5) {

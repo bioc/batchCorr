@@ -53,4 +53,5 @@ data("ThreeBatchData")
 normData <- normalizeBatches(peakTableCorr = PTfill, batches = meta$batch,
                              sampleGroup = meta$grp, refGroup = "Ref",
                              population = "all")
+
 }
