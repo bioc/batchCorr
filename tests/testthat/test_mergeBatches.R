@@ -1,7 +1,5 @@
 test_that("mergeBatches",{
-  
-  data("ThreeBatchData", package="batchCorr")
-  
+    
   #Merging datasets previously corrected in corrDrift unit test
   mergedData <- mergeBatches(list(BCorr, FCorr))
   

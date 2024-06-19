@@ -1,7 +1,5 @@
 test_that("normalizeBatches", {
   
-  data("ThreeBatchData", package="batchCorr")
-  
   #Normalizing batches previously corrected with corrDrift and merged with mergeBatches
   meta <- meta[-which(meta$batch=="H"),]
   normData <- normalizeBatches(peakTableCorr = mergedData$peakTableCorr,

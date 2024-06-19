@@ -1,9 +1,11 @@
 set.seed(2024)
+
+################# Drift correction #################
 batchB <- getBatch(peakTable = PTfill, meta = meta, 
                    batch = meta$batch, select = 'B')
 batchF <- getBatch(peakTable = PTfill, meta = meta, 
                    batch = meta$batch, select = 'F')
-# # Drift correction using QCs
+# Drift correction using QCs
 BCorr <- correctDrift(peakTable = batchB$peakTable, 
                       injections = batchB$meta$inj, 
                       sampleGroups = batchB$meta$grp, QCID = 'QC', 
@@ -16,9 +18,13 @@ FCorr <- correctDrift(peakTable = batchF$peakTable,
                       RefID='Ref', G = seq(5,35,by=3), 
                       modelNames = c('VVE', 'VEE'),
                       report = FALSE)
+                      
+############### Merge batches ################
+mergedData <- mergeBatches(list(BCorr, FCorr))
 
-# correctDrift low-level walkthrough
-meta_test <- data.frame(injections = batchB$meta$inj,sampleGroups = batchB$meta$grp)
+####### correctDrift low-level walkthrough ########
+meta_test <- data.frame(injections = batchB$meta$inj,
+                        sampleGroups = batchB$meta$grp)
 batchQC <- .getGroup(peakTable=batchB$peakTable, meta=meta_test, 
                      sampleGroup=batchB$meta$grp, select = "QC")
 QCObject <- makeQCObject(peakTable = batchQC$peakTable, 
@@ -36,7 +42,7 @@ corrected_none <- driftCorr(QCDriftCalc = calculated_spline,
                             CorrObj = BatchObject, report = FALSE)
 cleaned_none <- cleanVar(corrected_none, CVlimit = 0.3, report = FALSE)
 
-# alignBatches low-level walkthrough
+########## alignBatches low-level walkthrough #########
 peakIn <- peakInfo(PT = PTnofill, sep = '@', start = 3)  
 
 bFlag <- batchFlag(PTnofill = PTnofill, batch = meta$batch, 
