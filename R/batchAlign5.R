@@ -52,14 +52,14 @@ align=function(flags,mz,rt, mzdiff, rtdiff) {
   misIndex=which(colSums(flags)!=nrow(flags) & colSums(flags)!=0) # Take out misalignment candidates
   event=list()
   c=0
-  for (i in 1:(length(misIndex)-1)) {
+  for (i in seq_len(length(misIndex) -1)) {
     m=misIndex[i] # Take out next available misalignment candidate
     misPlus=misIndex[misIndex>m]# Look at the ones with higher index
     rtPlus=rt[misPlus] # Their rts
     mzPlus=mz[misPlus] # and mzs
     inBox=which(abs(rtPlus-rt[m])<rtdiff & abs(mzPlus-mz[m])<mzdiff) # Which are in the mz*rt box?
     if (length(inBox)>0) {
-      for (j in 1:length(inBox)) {
+      for (j in seq_along(inBox)) {
         n=misPlus[inBox[j]]
         dotProd=sum(flags[,m]*flags[,n]) # Check overlapping features within box
         if (dotProd==0) { # For systematic misalignment to occur, these must be missed between features, ie dotProd=0
@@ -86,15 +86,15 @@ align=function(flags,mz,rt, mzdiff, rtdiff) {
   duplMN=event$n[event$n%in%event$m]
   evTemp=event
   features=as.data.frame(matrix(nrow=1,ncol=8+nrow(flags)))
-  colnames(features)=c('cluster','featureIndex','mz','rt','to','from','MN','NN',paste('bF',1:nrow(flags),sep=''))
+  colnames(features)=c('cluster','featureIndex','mz','rt','to','from','MN','NN',paste('bF',seq_len(nrow(flags)),sep=''))
   ## Cluster together same m's
-  for (j in 1:length(uniqM)) {
+  for (j in seq_along(uniqM)) {
     uF=uniqM[j]
     mNum=sum(event$m==uF)
     nNum=sum(event$n==uF)
     featIndex=c(j,uF,mz[uF],rt[uF],0,0,0,0,flags[,uF])
     features=rbind(features,featIndex)
-    for (mIndex in 1:mNum) {
+    for (mIndex in seq_len(mNum)) {
       eventNum=which(event$m==uF)[mIndex]
       nM=event$n[eventNum]
       evTemp[eventNum,]=NA
@@ -137,8 +137,8 @@ align=function(flags,mz,rt, mzdiff, rtdiff) {
 clusterMatrix=function(features) {
   nClust=length(unique(features$cluster))
   clustMat=matrix(nrow=nClust,ncol=3+length(grep('bF',colnames(features))))
-  colnames(clustMat)=c('cluster','nFeat','dotProd',paste('bF',1:length(grep('bF',colnames(features))),sep=''))
-  for (c in 1:nClust) {
+  colnames(clustMat)=c('cluster','nFeat','dotProd',paste('bF',seq_along(grep('bF',colnames(features))),sep=''))
+  for (c in seq_len(nClust)) {
     clustSub=features[features$cluster==c,]
     vectMult=as.numeric(clustSub[1,grep('bF',colnames(features))])
     for (f in 2:nrow(clustSub)) {
@@ -162,8 +162,8 @@ clusterMatrix=function(features) {
 clustSplit=function(clustFlags,mz,rt) {
   clustList=rep(1,ncol(clustFlags))
   dotFlag=matrix(0,ncol=ncol(clustFlags),nrow=ncol(clustFlags))
-  for (i in 1:ncol(clustFlags)) {
-    for (j in 1:ncol(clustFlags)) {
+  for (i in seq_len(ncol(clustFlags))) {
+    for (j in seq_len(ncol(clustFlags))) {
       dotFlag[i,j]=ifelse(sum(clustFlags[,i]*clustFlags[,j])==0,1,0)
     }
   }
@@ -188,18 +188,18 @@ clustSplit=function(clustFlags,mz,rt) {
   f2=coCand[which.min(heur)]
   clustList=rep(2,ncol(clustFlags))
   clustList[cand[which.min(heur)]]=clustList[coCand[which.min(heur)]]=1
-  hFlagNew=heurFlag[!1:nrow(heurFlag)%in%c(f1,f2),!1:nrow(heurFlag)%in%c(f1,f2)]
+  hFlagNew=heurFlag[!seq_len(nrow(heurFlag))%in%c(f1,f2),!seq_len(nrow(heurFlag))%in%c(f1,f2)]
   if (is.matrix(hFlagNew)) {
     nDistNew=apply(hFlagNew,1,function(x) sum(!is.na(x)))
     if (sum(nDistNew)==0) {
-      clustList[clustList==2]=seq(1:sum(clustList==2))+1
+      clustList[clustList==2]=seq(seq_len(sum(clustList==2))) + 1
     } else {
       subFeats=as.data.frame(cbind(clustList,t(clustFlags)))
       colnames(subFeats)[1]='cluster'
       subClustMat=clusterMatrix(subFeats)
       if (subClustMat$dotProd[2]!=0) {
         ### clustSplit(new matrix)
-        cat('\n Warning: 2nd round of clustSplit highly experimental \n')
+        message("Second round of clustSplit highly experimental")
         newSplit=clustSplit(clustFlags[,clustList==2],mz[clustList==2],rt[clustList==2])
         clustList[clustList==2]=newSplit+1
       }
@@ -255,7 +255,7 @@ plotClust=function(batchflag,grpFlag,cluster,text,color=2,mzwidth = 0.02,rtwidth
 #' @return clusters: clusters after splitting overcrowded clusters
 #' @return oldFeatures: features before splitting overcrowded clusters
 #' @return oldClusters: clusters before splitting overcrowded clusters
-#' @importFrom grDevices dev.off pdf png 
+#' @importFrom grDevices dev.off pdf
 #' @noRd
 alignIndex=function(batchflag,grpType ,mzdiff, rtdiff, report, reportName='cluster_splits', reportPath) {
   bF=batchflag
@@ -297,7 +297,7 @@ alignIndex=function(batchflag,grpType ,mzdiff, rtdiff, report, reportName='clust
   nClust=nrow(a2$clusters)
   shiftList=numeric(ncol(bF$flagHard))
   shiftGrp=character(ncol(bF$flagHard))
-  for (c in 1:nClust) {
+  for (c in seq_len(nClust)) {
     feats=a2$features$featureIndex[a2$features$cluster==c]
     shiftList[feats]=feats[1]
     shiftGrp[feats]=as.character(grpType)
@@ -322,7 +322,7 @@ plotAlign=function(batchflag,alignindex,clust,reportName='aligned_clusters', rep
   bF=batchflag
   pdf(file=paste(reportPath,reportName,'.pdf',sep=''))
   if (missing(clust)) {
-    clustPlots=1:dim(aI$clusters)[1]
+    clustPlots= seq_len(dim(aI$clusters)[1])
   } else clustPlots=clust
   # cat(clustPlots)
   if (length(clustPlots)==2) par(mfrow=c(2,1))
