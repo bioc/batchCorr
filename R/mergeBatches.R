@@ -22,7 +22,7 @@ mergeBatches <- function(batchList, qualRatio=0.5) {
   nQual <- ceiling(qualRatio*nBatch)
   #If no batchnames supplied in batchList names batches from 1-nBatches
   if(is.null(names(batchList))) {
-    batchNames <- 1:nBatch
+    batchNames <- seq_len(nBatch)
   } else {
     batchNames <- names(batchList)
   }
@@ -32,7 +32,7 @@ mergeBatches <- function(batchList, qualRatio=0.5) {
   qualFeatures <- list()
   peakTablesOrg <- peakTablesCorr <- list()
   # Extract relevant data from corr objects
-  for (batch in 1:nBatch) {
+  for (batch in seq_len(nBatch)) {
     nSamp[batch] <- length(batchList[[batch]]$TestInjs)
     injections[[batch]] <- batchList[[batch]]$TestInjs
     qualFeatures[[batch]] <- batchList[[batch]]$finalVars

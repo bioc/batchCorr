@@ -18,22 +18,20 @@
 peakInfo=function(PT,sep='_',timepos=2,start=1) {
   #Making sure separator is present in colnames of peak table (PT)
   if(!any(grepl(sep, colnames(PT)))){
-    message(paste0("Error in 'peakInfo': Separator not present in column names of peak table."))
-    stop()
+    stop("Separator not present in column names of peak table.")
   }
   #Making sure type of start is numeric in nature
   if(!is.numeric(start) || !is.numeric(timepos)){
     whichNotNumeric <- c("'start'", "'timepos'")
-    message(paste0("Error in 'peakInfo': ",
-                   paste(whichNotNumeric[c(!is.numeric(start),
-                                           !is.numeric(timepos))], collapse=" & "),
-                   " not numeric."))
-    stop()
+    stop("Arguments ",
+         paste(whichNotNumeric[c(!is.numeric(start),
+                                 !is.numeric(timepos))], collapse=" & "),
+         " not numeric.")
   }
+
   #Checking that separator is not longer than 1
   if(length(sep) > 1){
-    message(paste0("Error: Only use of one separator possible"))
-    stop()
+    stop("Only use of one separator possible")
   }
   
   #Making matrix of mz and rt after splitting by separator
@@ -43,7 +41,7 @@ peakInfo=function(PT,sep='_',timepos=2,start=1) {
   #Reverse column order if time is not after separator
   if (timepos!=2) peakInfo=peakInfo[,2:1]
   colnames(peakInfo)=c('mz','rt')
-  rownames(peakInfo)=paste('feature',1:nrow(peakInfo),sep='_')
+  rownames(peakInfo)=paste('feature',seq_len(nrow(peakInfo)),sep='_')
   return(peakInfo)
 }
 

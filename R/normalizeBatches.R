@@ -92,7 +92,7 @@ normalizeBatches <- function(peakTableCorr,
   
   
   # Aggregate CV and average intensities for the reference sample type per batch
-  for (b in 1:nBatch) {
+  for (b in seq_len(nBatch)) {
     batch <- uniqBatch[b]
     peakTableBatch <- peakTableCorr[batches == batch & sampleGroup == refGroup,]
     # Criterion for QC feature CV
@@ -102,7 +102,7 @@ normalizeBatches <- function(peakTableCorr,
   }
   
   # Calculate average intensity ratios between batches
-  for (b in 1:(nBatch - 1)) {
+  for (b in seq_len(nBatch - 1)) {
     for (bb in (b + 1):nBatch) {
       MeanIntensityRatios[bb, b] <- mean(RefMeanIntensity[bb, ]) / mean(RefMeanIntensity[b,])
       MeanIntensityRatios[b, bb] <- 1 / MeanIntensityRatios[bb, b]
@@ -111,11 +111,11 @@ normalizeBatches <- function(peakTableCorr,
   
   
   # Perform normalisation per feature
-  for (feat in 1:nFeat) {
+  for (feat in seq_len(nFeat)) {
     
     # Calculate feature-wise average intensity ratios between batches
     featureIntensityRatios <- matrix(1, nrow = nBatch, ncol = nBatch)
-    for (b in 1:(nBatch - 1)) {
+    for (b in seq_len(nBatch - 1)) {
       for (bb in (b + 1):nBatch) {
         featureIntensityRatios[bb, b] <- RefMeanIntensity[bb, feat] / RefMeanIntensity[b,feat]
         featureIntensityRatios[b, bb] <- 1 / featureIntensityRatios[bb, b]
@@ -128,7 +128,7 @@ normalizeBatches <- function(peakTableCorr,
     # Convert missing values -> FALSE (i.e. not a candidate)
     candidates[is.na(candidates)] <- FALSE
     # Criterion for CV < limit
-    for (b in 1:nBatch) {
+    for (b in seq_len(nBatch)) {
       if (CVMatrix[b, feat] == FALSE | is.na(CVMatrix[b, feat])) {
         candidates[, b] <- candidates[b, ] <- FALSE
       }

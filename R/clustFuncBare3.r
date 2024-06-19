@@ -48,12 +48,12 @@ rmsDist=function(mat) {
 #' @noRd
 clust=function(QCInjs,QCFeats,modelNames,G,report, reportPath) {
   if (length(QCInjs)!=nrow(QCFeats)) stop ('nrow(QCFeats) not equal to length(QCInjs)')
-  cat('\nMclust ')
+  message('Mclust ')
   combinations <- expand.grid("modelNames" = modelNames, "G" = G)
   startTime=proc.time()[3]
   merged_models <- NULL
   models <- BiocParallel::bplapply(
-    1:nrow(combinations), 
+    seq_len(nrow(combinations)), 
     function(comb, combinations, QCFeats, merged_models) {
       mclBIC <- mclustBIC(t(QCFeats), G = combinations$G[comb],
                           modelNames = combinations$modelNames[comb])
@@ -82,13 +82,13 @@ clust=function(QCInjs,QCFeats,modelNames,G,report, reportPath) {
 		plot(merged_models)
 		dev.off()
 	}
-	cat('\nMClust final model with',MC$G,'clusters and',MC$modelName,'geometry.')
-	cat('\nBIC performed in',BICtime,'seconds and clustering in',clustTime,'seconds.\n')
+	message("MClust final model with ",MC$G," clusters and ",MC$modelName," geometry.")
+	message("BIC performed in ",BICtime," seconds and clustering in ",clustTime," seconds.")
 	return(list(QCInjs=QCInjs,QCFeats=QCFeats,BIC=merged_models,clust=MC,BICTime=BICtime,clustTime=clustTime))
 }
 .calc_driftCalc <- function(nclass, classes, varClust, QCFeats, QCInjs, injs, spar, corMat, deltaDist, rmsdRaw, cvRaw, cvs, ratios, cvCorr, smoothFunc, report, reportPath) {
   rmsdRaw=rmsDist(QCFeats)
-	for (n in 1:nclass) {
+	for (n in seq_len(nclass)) {
 			QCFeatsCorr=QCFeats # Allocate matrix (for drift corrected variables) for later QC distance calculation
 			whichVars=which(classes==n)
 			vars=QCFeats[,whichVars] # Take out cluster variables
@@ -166,7 +166,7 @@ driftCalc=function(QCClust,smoothFunc=c('spline','loess'),spar,report, reportPat
 		corMat=matrix(nrow=length(injs),ncol=nclass) # Allocate matrix with correction function (rows) per cluster (column)
 		cvs=varClust=list()
 		ratios=matrix(nrow=nclass,ncol=4)
-		rownames(ratios)=paste('cluster',1:nclass,sep='')
+		rownames(ratios)=paste('cluster',seq_len(nclass),sep='')
 		colnames(ratios)=c('raw.15','corr.15','raw.2','corr.2')
 	if (report==TRUE) {
 		pdf(file=paste(reportPath, 'cluster_G', nclass, '_', format(Sys.time(), format="%y%m%d_%H%M"), '.pdf', sep=''))
@@ -180,14 +180,14 @@ driftCalc=function(QCClust,smoothFunc=c('spline','loess'),spar,report, reportPat
   
 	if (report==TRUE) dev.off() # Close pdf file
 	clustComm=rep('None',nclass)
-	actionInfo=data.frame(number=1:nclass,n=vapply(driftCalc_list$varClust,length, integer(1)),action=clustComm,CVRaw=driftCalc_list$cvRaw,CVCorr=driftCalc_list$cvCorr)
+	actionInfo=data.frame(number=seq_len(nclass),n=vapply(driftCalc_list$varClust,length, integer(1)),action=clustComm,CVRaw=driftCalc_list$cvRaw,CVCorr=driftCalc_list$cvCorr)
 	QCClust$actionInfo=actionInfo
 	QCClust$ratios=driftCalc_list$ratios
 	QCClust$corMat=driftCalc_list$corMat
 	QCClust$deltaDist=driftCalc_list$deltaDist
 	QCClust$varClust=driftCalc_list$varClust
 	QCDriftCalc=QCClust
-	cat('\nCalculation of QC drift profiles performed.\n')
+	message("Calculation of QC drift profiles performed.")
 	return(QCDriftCalc)
 }
 
@@ -219,7 +219,7 @@ driftCorr=function(QCDriftCalc,refList=NULL,refType=c('none','one'),CorrObj=NULL
 	  keepClust=QCDriftCalc$keepClust
 	  corrQCTemp=corrQC=QCDriftCalc$QCFeatsClean
 	} else {
-	  keepClust=1:(QCDriftCalc$clust$G)
+	  keepClust=seq_len(QCDriftCalc$clust$G)
 	  corrQCTemp=corrQC=QCDriftCalc$QCFeats
 	}
 	injQC=QCDriftCalc$QCInjs
@@ -243,7 +243,7 @@ driftCorr=function(QCDriftCalc,refList=NULL,refType=c('none','one'),CorrObj=NULL
 	  corrTest=corrTest[,!colnames(corrTest)%in%removeFeats]
 	}
 	if (length(injTest)!=nrow(corrTest)) stop ('nrow(corrTest) not equal to length(injTest)')
-	for (i in 1:length(keepClust)) {
+	for (i in seq_along(keepClust)) {
 		n=ordDist[i]
 		corFact=corMat[,n] # take out cluster correction factors from "master" matrix
 		corrFeats=varClust[[n]]
@@ -307,9 +307,11 @@ driftCorr=function(QCDriftCalc,refList=NULL,refType=c('none','one'),CorrObj=NULL
 	# QCDriftCalc$TestFeatsClean=
 	QCDriftCalc$TestFeatsCorr=corrTest
 	QCCorr=QCDriftCalc
-	cat('\nDrift correction of',sum(QCCorr$actionInfo$action!='None'),'out of',QCCorr$clust$G,'clusters ')
-	if (refType=='none') cat('using QC samples only.') else cat('validated by external reference samples.')
-	cat('\nCorrected peak table in $TestFeatsCorr\n')
+	message("\nDrift correction of ",
+          sum(QCCorr$actionInfo$action!='None')," out of ",
+          QCCorr$clust$G," clusters")
+	if (refType=='none') message("using QC samples only.") else ("validated by external reference samples.")
+	message("\nCorrected peak table in $TestFeatsCorr\n")
 	return(QCCorr)
 }
 
@@ -376,14 +378,14 @@ cleanVar=function(QCCorr,CVlimit,report=FALSE, reportPath) {
 	varClust=QCCorr$varClust
 	N=length(varClust)
 	CVAfter=nFeatAfter=numeric(N)
-	for (n in 1:N) {
+	for (n in seq_len(N)) {
 		vars=varClust[[n]]
 		clustVars=as.matrix(QCFeatsFinal[,finalVars%in%vars])
 		CVAfter[n]=mean(cv(clustVars))
 		nFeatAfter[n]=ncol(clustVars)
 	}
 	actionInfo=QCCorr$actionInfo
-	actionInfo=cbind(actionInfo[,1:2],nFeatAfter,actionInfo[,3:5],CVAfter)
+	actionInfo=cbind(actionInfo[,seq_len(2)],nFeatAfter,actionInfo[,3:5],CVAfter)
 	colnames(actionInfo)[2:3]=c('nBefore','nAfter')
 	QCCorr$actionInfo=actionInfo
 	QCCorr$QCFeatsFinal=QCFeatsFinal
@@ -391,11 +393,10 @@ cleanVar=function(QCCorr,CVlimit,report=FALSE, reportPath) {
 	QCCorr$finalVars=finalVars
 	QCCorr$QCcvs=QCcvs
 	QCFinal=QCCorr
-	cat('\nFiltering by QC CV <',CVlimit,'->', sum(QCFinal$actionInfo$nAfter), 'features out of', sum(QCFinal$actionInfo$nBefore), 'kept in the peak table.')
-	cat('\nPeak table in $TestFeatsFinal, final variables in $finalVars and cluster info in $actionInfo.')
+	message('\nFiltering by QC CV < ',CVlimit,' -> ', sum(QCFinal$actionInfo$nAfter), ' features out of ', sum(QCFinal$actionInfo$nBefore), ' kept in the peak table. ')
+	message('\nPeak table in $TestFeatsFinal, final variables in $finalVars and cluster info in $actionInfo.')
 	return(QCFinal)
 }
-
 
 
 #' DC: Perform drift correction
