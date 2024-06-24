@@ -10,49 +10,50 @@
 #' @return $meta: Single batch metadata
 #'
 #' @examples
-#' data('ThreeBatchData') 
+#' data("ThreeBatchData")
 #' # Get batches for drift correction
-#' batchB <- getBatch(peakTable = PTfill, meta = meta, 
-#'                    batch = meta$batch, select = 'B')
-#' batchF <- getBatch(peakTable = PTfill, meta = meta, 
-#'                    batch = meta$batch, select = 'F')
+#' batchB <- getBatch(
+#'     peakTable = PTfill, meta = meta,
+#'     batch = meta$batch, select = "B"
+#' )
+#' batchF <- getBatch(
+#'     peakTable = PTfill, meta = meta,
+#'     batch = meta$batch, select = "F"
+#' )
 #'
 #' @export
-getBatch=function(peakTable,meta,batch,select) {
-  #Checking if nrow of peakTable corresponds to nrow/length of meta
-  if(is.null(dim(meta))){
-    if(length(meta) != nrow(peakTable)){
-      # message(paste0("Warning in 'getBatch': Meta length not equivalent to rows in peakTable"))
-      stop("Meta length not equivalent to rows in peakTable")
+getBatch <- function(peakTable, meta, batch, select) {
+    # Checking if nrow of peakTable corresponds to nrow/length of meta
+    if (is.null(dim(meta))) {
+        if (length(meta) != nrow(peakTable)) {
+            stop("Meta length not equivalent to rows in peakTable")
+        }
+    } else {
+        if (nrow(meta) != nrow(peakTable)) {
+            stop("Meta length not equivalent to rows in peakTable")
+        }
     }
-  } else {
-    if(nrow(meta) != nrow(peakTable)){
-      # message(paste0("Warning in 'getBatch': Meta length not equivalent to rows in peakTable"))
-      stop("Meta length not equivalent to rows in peakTable")
+
+    # Checking that select is not a vector and throws error if it is
+    if (length(select) > 1) {
+        stop("Number of batches to select > 1")
     }
-  }
-  
-  #Checking that select is not a vector and throws error if it is
-  if(length(select) > 1){
-    # message(paste0("Error in 'getBatch': Vector of batches to select is not supported"))
-    stop("Number of batches to select > 1")
-  }
-  
-  peakTable=peakTable[batch==select,]
-  
-  #Checking if nrow in peakTable is larger than 0 and throwing error if not
-  if(nrow(peakTable) == 0){
-    # message("Error in 'getBatch': No such batch in batch parameter")
-    stop("No such batch in batch vector")
-  }
-  
-  #Checking if meta is vector and in that case turning it into a matrix
-  if(is.null(dim(meta))){
-    meta=matrix(meta,ncol = 1)
-  }
-  meta=meta[batch==select,]
-  
-  return(list(peakTable=peakTable,meta=meta))
+
+    peakTable <- peakTable[batch == select, ]
+
+    # Checking if nrow in peakTable is larger than 0 and throwing error if not
+    if (nrow(peakTable) == 0) {
+        # message("Error in 'getBatch': No such batch in batch parameter")
+        stop("No such batch in batch vector")
+    }
+
+    # Checking if meta is vector and in that case turning it into a matrix
+    if (is.null(dim(meta))) {
+        meta <- matrix(meta, ncol = 1)
+    }
+    meta <- meta[batch == select, ]
+
+    return(list(peakTable = peakTable, meta = meta))
 }
 
 #' Extract specific sample group from peaktable and metadata
@@ -70,13 +71,17 @@ getBatch=function(peakTable,meta,batch,select) {
 #'
 #' @examples
 #' data(ThreeBatchData)
-#' batchB=getBatch(peakTable=PTfill, meta=meta, batch=meta$batch, select='B')
-#' batchBQC=.getGroup(peakTable=batchB$peakTable, meta=batchB$meta, sampleGroup=batchB$Meta$grp, select='QC')
+#' batchB <- getBatch(peakTable = PTfill, meta = meta, batch = meta$batch, select = "B")
+#' batchBQC <- .getGroup(peakTable = batchB$peakTable, meta = batchB$meta, sampleGroup = batchB$Meta$grp, select = "QC")
 #' @noRd
-.getGroup=function(peakTable,meta,sampleGroup,select) {
-  whichIncl=grep(select,sampleGroup)
-  peakTable=peakTable[whichIncl,]
-  if(is.null(dim(meta))) meta=matrix(meta,ncol = 1)
-  meta=meta[whichIncl,]
-  return(list(peakTable=peakTable,meta=meta))
+.getGroup <- function(peakTable, meta, sampleGroup, select) {
+    whichIncl <- grep(select, sampleGroup)
+    peakTable <- peakTable[whichIncl, ]
+
+    if (is.null(dim(meta))) {
+        meta <- matrix(meta, ncol = 1)
+    }
+    meta <- meta[whichIncl, ]
+
+    return(list(peakTable = peakTable, meta = meta))
 }

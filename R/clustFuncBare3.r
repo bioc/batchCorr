@@ -5,28 +5,28 @@
 #' @return a vector of CVs
 #' @noRd
 ## Simple function for calculating cv per column (ie variable)
-cv=function(mat) {
-  if (is.null(dim(mat))) {
-    cv=abs(sd(mat)/mean(mat))
-  } else {
-    mean=apply(mat,2,mean)
-    sd=apply(mat,2,sd)
-    cv=abs(sd/mean)
-  }
-	return(cv)
+cv <- function(mat) {
+    if (is.null(dim(mat))) {
+        cv <- abs(sd(mat) / mean(mat))
+    } else {
+        mean <- apply(mat, 2, mean)
+        sd <- apply(mat, 2, sd)
+        cv <- abs(sd / mean)
+    }
+    return(cv)
 }
 
 #' Root mean squared distance
 #'
-#'Calculate root mean squared distance from center point
+#' Calculate root mean squared distance from center point
 #' @param mat a matrix containing observations as rows and variables as columns
 #' @return a numeric rmsDist
 #' @noRd
 ## Simple function for calculating root mean square distance
-rmsDist=function(mat) {
-	mean=colMeans(mat)
-	rmsd=sqrt(sum(apply(mat,1,function(x) sum((x-mean)^2)))/nrow(mat))
-	return(rmsd)
+rmsDist <- function(mat) {
+    mean <- colMeans(mat)
+    rmsd <- sqrt(sum(apply(mat, 1, function(x) sum((x - mean)^2))) / nrow(mat))
+    return(rmsd)
 }
 
 #' DC: Cluster features
@@ -46,91 +46,187 @@ rmsDist=function(mat) {
 #' @return clustTime: Time required for the clustering
 #' @import mclust
 #' @noRd
-clust=function(QCInjs,QCFeats,modelNames,G,report, reportPath) {
-  if (length(QCInjs)!=nrow(QCFeats)) stop ('nrow(QCFeats) not equal to length(QCInjs)')
-  message('Mclust ')
-  combinations <- expand.grid("modelNames" = modelNames, "G" = G)
-  startTime=proc.time()[3]
-  merged_models <- NULL
-  models <- BiocParallel::bplapply(
-    seq_len(nrow(combinations)), 
-    function(comb, combinations, QCFeats, merged_models) {
-      mclBIC <- mclustBIC(t(QCFeats), G = combinations$G[comb],
-                          modelNames = combinations$modelNames[comb])
-    }, 
-    combinations, QCFeats, merged_models)
-  endTime=proc.time()[3]
-  BICtime=endTime-startTime
-  merged_models <- NULL
-  # In case of missing BIC values for models, the failed merging is handled
-  for (i in seq_along(models)) {
-    tryCatch({
-      merged_models <- mclustBICupdate(merged_models, models[[i]])
-    }, error = function(e) {
-      if (grepl("missing value where TRUE/FALSE needed", e)) {
-        message("Missing BIC values for some model(s). You may want to check",
-                " which models have missing BIC values and/or try again.")
-      }
-    }) 
-  }
-  startTime=proc.time()[3]
-  MC <- summary(merged_models, data = t(QCFeats))
-  endTime=proc.time()[3]
-	clustTime=endTime-startTime
-	if (report==TRUE) {
-		pdf(file=paste(reportPath, 'cluster_BIC_', format(Sys.time(), format="%y%m%d_%H%M"), '.pdf', sep=''))
-		plot(merged_models)
-		dev.off()
-	}
-	message("MClust final model with ",MC$G," clusters and ",MC$modelName," geometry.")
-	message("BIC performed in ",BICtime," seconds and clustering in ",clustTime," seconds.")
-	return(list(QCInjs=QCInjs,QCFeats=QCFeats,BIC=merged_models,clust=MC,BICTime=BICtime,clustTime=clustTime))
+clust <- function(QCInjs,
+                  QCFeats,
+                  modelNames,
+                  G,
+                  report,
+                  reportPath) {
+    if (length(QCInjs) != nrow(QCFeats)) {
+        stop("nrow(QCFeats) not equal to length(QCInjs)")
+    }
+    message("Mclust ")
+    combinations <- expand.grid("modelNames" = modelNames, "G" = G)
+    startTime <- proc.time()[3]
+    merged_models <- NULL
+    models <- BiocParallel::bplapply(
+        seq_len(nrow(combinations)),
+        function(comb, combinations, QCFeats, merged_models) {
+            mclBIC <- mclustBIC(t(QCFeats),
+                G = combinations$G[comb],
+                modelNames = combinations$modelNames[comb]
+            )
+        },
+        combinations, QCFeats, merged_models
+    )
+    endTime <- proc.time()[3]
+    BICtime <- endTime - startTime
+    merged_models <- NULL
+    # In case of missing BIC values for models, the failed merging is handled
+    for (i in seq_along(models)) {
+        tryCatch(
+            {
+                merged_models <- mclustBICupdate(merged_models, models[[i]])
+            },
+            error <- function(e) {
+                if (grepl("missing value where TRUE/FALSE needed", e)) {
+                    message(
+                        "Missing BIC values for some model(s). You may want to check",
+                        " which models have missing BIC values and/or try again."
+                    )
+                }
+            }
+        )
+    }
+    startTime <- proc.time()[3]
+    MC <- summary(merged_models, data = t(QCFeats))
+    endTime <- proc.time()[3]
+    clustTime <- endTime - startTime
+    if (report == TRUE) {
+        pdf(file = paste(reportPath,
+            "cluster_BIC_",
+            format(Sys.time(), format = "%y%m%d_%H%M"),
+            ".pdf",
+            sep = ""
+        ))
+        plot(merged_models)
+        dev.off()
+    }
+    message(
+        "MClust final model with ", MC$G,
+        " clusters and ", MC$modelName, " geometry."
+    )
+    message(
+        "BIC performed in ", BICtime,
+        " seconds and clustering in ", clustTime, " seconds."
+    )
+    return(list(
+        QCInjs = QCInjs,
+        QCFeats = QCFeats,
+        BIC = merged_models,
+        clust = MC,
+        BICTime = BICtime,
+        clustTime = clustTime
+    ))
 }
-.calc_driftCalc <- function(nclass, classes, varClust, QCFeats, QCInjs, injs, spar, corMat, deltaDist, rmsdRaw, cvRaw, cvs, ratios, cvCorr, smoothFunc, report, reportPath) {
-  rmsdRaw=rmsDist(QCFeats)
-	for (n in seq_len(nclass)) {
-			QCFeatsCorr=QCFeats # Allocate matrix (for drift corrected variables) for later QC distance calculation
-			whichVars=which(classes==n)
-			vars=QCFeats[,whichVars] # Take out cluster variables
-			varClust[[n]]=colnames(QCFeats)[whichVars]
-			V=as.data.frame(cbind(QCInjs,vars)) # Arrange and rearrange data
-			V=melt(V,id.vars='QCInjs')
-			V=V[order(V$QCInjs),]
-			# Interpolations
-				if (length(QCInjs)<=3) {  # 2nd degree polynomial if <4 data points
-					Fit=lm(value ~ poly(QCInjs,2),data=V)
-					Pred=predict(Fit,data.frame(QCInjs=injs))
-					Pred=data.frame(x=injs,y=Pred)
-				} else {
-					if (smoothFunc=='spline') {
-						splineFit=smooth.spline(V$QCInjs,V$value,spar=spar) # Cubic spline regression otherwise
-						Pred=predict(splineFit,injs)  # Predict drift over all injections
-					} else {
-						loessFit=loess(value~QCInjs,data=V,span=spar)
-						Pred=predict(loessFit,data.frame(QCInjs=injs))
-						Pred=data.frame(x=injs,y=Pred)
-					}
-				}
-			corFact=Pred$y[1]/Pred$y  # Calculate correction factors for all injections
-			corMat[,n]=corFact # Store cluster correction factors in "master" matrix
-			corQC=corFact[QCInjs-min(QCInjs)+1]  # Bring out correction factors for QC samples specifically
-			QCFeatsCorr[,classes==n]=QCFeats[,classes==n]*corQC  # correct drift within cluster
-			## Calculate rmsDist
-			rmsdCorr=rmsDist(QCFeatsCorr)
-			deltaDist[n]=rmsdCorr-rmsdRaw
-			# deltaDist[n]=mean(dist(QCFeatsCorr))-meanDistQCFeats # Calculate change in average QC distance
-			cvRaw[n]=mean(cv(QCFeats[,classes==n]))
-			cvCorr[n]=mean(cv(QCFeatsCorr[,classes==n]))
-			cvs[[n]]=data.frame(Raw=cv(QCFeats[,classes==n]),Corr=cv(QCFeatsCorr[,classes==n]))
-			ratios[n,]=c(sum(cvs[[n]]$Raw<0.15)/nrow(cvs[[n]]),sum(cvs[[n]]$Corr<0.15)/nrow(cvs[[n]]),sum(cvs[[n]]$Raw<0.2)/nrow(cvs[[n]]),sum(cvs[[n]]$Corr<0.2)/nrow(cvs[[n]]))
-			if (report==TRUE) {
-				# Plot drift and drift function
-				matplot(QCInjs,QCFeats[,classes==n],type='l',lty=1,col='grey',ylim=range(QCFeats[,classes==n]),main=paste('Cluster ',n,'; n=',sum(classes==n),'; Raw; Mean CV=',round(mean(cv(QCFeats[,classes==n])),3),sep=''),ylab='Scaled intensity',xlab='Injection number')
-				lines(Pred,pch=2)
-				matplot(QCInjs,QCFeatsCorr[,classes==n],type='l',lty=1,col='grey',ylim=range(QCFeats[,classes==n]),main=paste('Corrected; Mean CV=',round(mean(cv(QCFeatsCorr[,classes==n])),3),sep=''),ylab='Scaled intensity',xlab='Injection number')
-			}
-		}
-  return(list("ratios" = ratios, "cvRaw" = cvRaw, "cvCorr" = cvCorr, "corMat" = corMat, "deltaDist" = deltaDist, "varClust" = varClust))
+.calc_driftCalc <- function(nclass,
+                            classes,
+                            varClust,
+                            QCFeats,
+                            QCInjs,
+                            injs,
+                            spar,
+                            corMat,
+                            deltaDist,
+                            rmsdRaw,
+                            cvRaw,
+                            cvs,
+                            ratios,
+                            cvCorr,
+                            smoothFunc,
+                            report,
+                            reportPath) {
+    rmsdRaw <- rmsDist(QCFeats)
+    for (n in seq_len(nclass)) {
+        # Allocate matrix (for drift corrected variables) for later QC dist calc
+        QCFeatsCorr <- QCFeats
+        whichVars <- which(classes == n)
+        vars <- QCFeats[, whichVars] # Take out cluster variables
+        varClust[[n]] <- colnames(QCFeats)[whichVars]
+        V <- as.data.frame(cbind(QCInjs, vars)) # Arrange and rearrange data
+        V <- melt(V, id.vars = "QCInjs")
+        V <- V[order(V$QCInjs), ]
+        # Interpolations
+        if (length(QCInjs) <= 3) { # 2nd degree polynomial if <4 data points
+            Fit <- lm(value ~ poly(QCInjs, 2), data = V)
+            Pred <- predict(Fit, data.frame(QCInjs = injs))
+            Pred <- data.frame(x = injs, y = Pred)
+        } else {
+            if (smoothFunc == "spline") {
+                # Cubic spline regression otherwise
+                splineFit <- smooth.spline(V$QCInjs, V$value, spar = spar)
+                # Predict drift over all injections
+                Pred <- predict(splineFit, injs)
+            } else {
+                loessFit <- loess(value ~ QCInjs, data = V, span = spar)
+                Pred <- predict(loessFit, data.frame(QCInjs = injs))
+                Pred <- data.frame(x = injs, y = Pred)
+            }
+        }
+        # Calculate correction factors for all injections
+        corFact <- Pred$y[1] / Pred$y
+        # Store cluster correction factors in "master" matrix
+        corMat[, n] <- corFact
+        # Bring out correction factors for QC samples specifically
+        corQC <- corFact[QCInjs - min(QCInjs) + 1]
+        # correct drift within cluster
+        QCFeatsCorr[, classes == n] <- QCFeats[, classes == n] * corQC
+        ## Calculate rmsDist
+        rmsdCorr <- rmsDist(QCFeatsCorr)
+        deltaDist[n] <- rmsdCorr - rmsdRaw
+
+        # Calculate change in average QC distance
+        # deltaDist[n]=mean(dist(QCFeatsCorr))-meanDistQCFeats
+
+        cvRaw[n] <- mean(cv(QCFeats[, classes == n]))
+        cvCorr[n] <- mean(cv(QCFeatsCorr[, classes == n]))
+        cvs[[n]] <- data.frame(
+            Raw = cv(QCFeats[, classes == n]),
+            Corr = cv(QCFeatsCorr[, classes == n])
+        )
+        ratios[n, ] <- c(
+            sum(cvs[[n]]$Raw < 0.15) / nrow(cvs[[n]]),
+            sum(cvs[[n]]$Corr < 0.15) / nrow(cvs[[n]]),
+            sum(cvs[[n]]$Raw < 0.2) / nrow(cvs[[n]]),
+            sum(cvs[[n]]$Corr < 0.2) / nrow(cvs[[n]])
+        )
+        if (report == TRUE) {
+            # Plot drift and drift function
+            matplot(QCInjs,
+                QCFeats[, classes == n],
+                type = "l",
+                lty = 1,
+                col = "grey",
+                ylim = range(QCFeats[, classes == n]),
+                main = paste("Cluster ", n, "; n=", sum(classes == n),
+                    "; Raw; Mean CV=",
+                    round(mean(cv(QCFeats[, classes == n])), 3),
+                    sep = ""
+                ),
+                ylab = "Scaled intensity",
+                xlab = "Injection number"
+            )
+            lines(Pred, pch = 2)
+            matplot(QCInjs, QCFeatsCorr[, classes == n],
+                type = "l",
+                lty = 1, col = "grey", ylim = range(QCFeats[, classes == n]),
+                main = paste("Corrected; Mean CV=",
+                    round(mean(cv(QCFeatsCorr[, classes == n])), 3),
+                    sep = ""
+                ),
+                ylab = "Scaled intensity",
+                xlab = "Injection number"
+            )
+        }
+    }
+    return(list(
+        "ratios" = ratios,
+        "cvRaw" = cvRaw,
+        "cvCorr" = cvCorr,
+        "corMat" = corMat,
+        "deltaDist" = deltaDist,
+        "varClust" = varClust
+    ))
 }
 
 #' DC: Calculate intensity drift per cluster
@@ -151,44 +247,73 @@ clust=function(QCInjs,QCFeats,modelNames,G,report, reportPath) {
 #' @importFrom graphics lines matplot par
 #' @import reshape
 #' @noRd
-driftCalc=function(QCClust,smoothFunc=c('spline','loess'),spar,report, reportPath) {
-  smoothFunc <- match.arg(smoothFunc)
-	MC=QCClust$clust
-	QCInjs=QCClust$QCInjs
-	QCFeats=QCClust$QCFeats
-	if (length(QCInjs)!=nrow(QCFeats)) stop ('nrow(QCFeats) not equal to length(QCInjs)')
-	# Extract classes
-		nclass=MC$G # Take out total number of identified clusters/components/groups/classes/whatever you want to call them
-		classes=MC$classification # Take out the classifications for the different variables
-	# Allocate variables
-		cvRaw=cvCorr=deltaDist=numeric(nclass) # allocate vector for effect size of drift correction per cluster
-		injs=min(QCInjs):max(QCInjs) # Make injection list
-		corMat=matrix(nrow=length(injs),ncol=nclass) # Allocate matrix with correction function (rows) per cluster (column)
-		cvs=varClust=list()
-		ratios=matrix(nrow=nclass,ncol=4)
-		rownames(ratios)=paste('cluster',seq_len(nclass),sep='')
-		colnames(ratios)=c('raw.15','corr.15','raw.2','corr.2')
-	if (report==TRUE) {
-		pdf(file=paste(reportPath, 'cluster_G', nclass, '_', format(Sys.time(), format="%y%m%d_%H%M"), '.pdf', sep=''))
-		par(mfrow=c(2,1))
-		par(mar=c(2,4,2,0))
-	}
-	### Calculate drift correction for each cluster
-	# Calculate distance on scaled variables
-	rmsdRaw=rmsDist(QCFeats)
-  driftCalc_list <- .calc_driftCalc(nclass = nclass, classes = classes, varClust = varClust, QCFeats = QCFeats, QCInjs = QCInjs, injs = injs, spar = spar, corMat = corMat, deltaDist = deltaDist, rmsdRaw = rmsdRaw, cvRaw = cvRaw, cvs = cvs, ratios = ratios, cvCorr = cvCorr, smoothFunc, report = report, reportPath = reportPath)
-  
-	if (report==TRUE) dev.off() # Close pdf file
-	clustComm=rep('None',nclass)
-	actionInfo=data.frame(number=seq_len(nclass),n=vapply(driftCalc_list$varClust,length, integer(1)),action=clustComm,CVRaw=driftCalc_list$cvRaw,CVCorr=driftCalc_list$cvCorr)
-	QCClust$actionInfo=actionInfo
-	QCClust$ratios=driftCalc_list$ratios
-	QCClust$corMat=driftCalc_list$corMat
-	QCClust$deltaDist=driftCalc_list$deltaDist
-	QCClust$varClust=driftCalc_list$varClust
-	QCDriftCalc=QCClust
-	message("Calculation of QC drift profiles performed.")
-	return(QCDriftCalc)
+driftCalc <- function(QCClust,
+                      smoothFunc = c("spline", "loess"),
+                      spar,
+                      report,
+                      reportPath) {
+    smoothFunc <- match.arg(smoothFunc)
+    MC <- QCClust$clust
+    QCInjs <- QCClust$QCInjs
+    QCFeats <- QCClust$QCFeats
+    if (length(QCInjs) != nrow(QCFeats)) {
+        stop("nrow(QCFeats) not equal to length(QCInjs)")
+    }
+    # Extract classes
+    nclass <- MC$G # Take out total number of identified clusters/components/groups/classes/whatever you want to call them
+    classes <- MC$classification # Take out the classifications for the different variables
+    # Allocate variables
+    cvRaw <- cvCorr <- deltaDist <- numeric(nclass) # allocate vector for effect size of drift correction per cluster
+    injs <- min(QCInjs):max(QCInjs) # Make injection list
+    corMat <- matrix(nrow = length(injs), ncol = nclass) # Allocate matrix with correction function (rows) per cluster (column)
+    cvs <- varClust <- list()
+    ratios <- matrix(nrow = nclass, ncol = 4)
+    rownames(ratios) <- paste("cluster", seq_len(nclass), sep = "")
+    colnames(ratios) <- c("raw.15", "corr.15", "raw.2", "corr.2")
+    if (report == TRUE) {
+        pdf(file = paste(reportPath,
+            "cluster_G",
+            nclass, "_",
+            format(Sys.time(), format = "%y%m%d_%H%M"),
+            ".pdf",
+            sep = ""
+        ))
+        par(mfrow = c(2, 1))
+        par(mar = c(2, 4, 2, 0))
+    }
+    ### Calculate drift correction for each cluster
+    # Calculate distance on scaled variables
+    rmsdRaw <- rmsDist(QCFeats)
+    driftCalc_list <- .calc_driftCalc(
+        nclass = nclass, classes = classes,
+        varClust = varClust, QCFeats = QCFeats,
+        QCInjs = QCInjs, injs = injs, spar = spar,
+        corMat = corMat, deltaDist = deltaDist,
+        rmsdRaw = rmsdRaw, cvRaw = cvRaw,
+        cvs = cvs, ratios = ratios, cvCorr = cvCorr,
+        smoothFunc, report = report,
+        reportPath = reportPath
+    )
+
+    if (report == TRUE) {
+        dev.off() # Close pdf file
+    }
+    clustComm <- rep("None", nclass)
+    actionInfo <- data.frame(
+        number = seq_len(nclass),
+        n = vapply(driftCalc_list$varClust, length, integer(1)),
+        action = clustComm,
+        CVRaw = driftCalc_list$cvRaw,
+        CVCorr = driftCalc_list$cvCorr
+    )
+    QCClust$actionInfo <- actionInfo
+    QCClust$ratios <- driftCalc_list$ratios
+    QCClust$corMat <- driftCalc_list$corMat
+    QCClust$deltaDist <- driftCalc_list$deltaDist
+    QCClust$varClust <- driftCalc_list$varClust
+    QCDriftCalc <- QCClust
+    message("Calculation of QC drift profiles performed.")
+    return(QCDriftCalc)
 }
 
 #' DC: Correct for intensity drift per cluster
@@ -210,109 +335,143 @@ driftCalc=function(QCClust,smoothFunc=c('spline','loess'),spar,report, reportPat
 #' @importFrom grDevices rgb
 #' @noRd
 ## Perform drift correction for clusters IF rmsdRef is improved
-driftCorr=function(QCDriftCalc,refList=NULL,refType=c('none','one'),CorrObj=NULL,report, reportPath) {
-	if (missing(refType)) refType='none'
-	deltaDist=QCDriftCalc$deltaDist
-	varClust=QCDriftCalc$varClust
-	removeFeats=QCDriftCalc$removeFeats
-	if (!is.null(removeFeats)) {
-	  keepClust=QCDriftCalc$keepClust
-	  corrQCTemp=corrQC=QCDriftCalc$QCFeatsClean
-	} else {
-	  keepClust=seq_len(QCDriftCalc$clust$G)
-	  corrQCTemp=corrQC=QCDriftCalc$QCFeats
-	}
-	injQC=QCDriftCalc$QCInjs
-	corMat=QCDriftCalc$corMat
-	clustComm=as.character(QCDriftCalc$actionInfo$action)
-	ordDist=order(deltaDist)
-	ordDist=ordDist[ordDist%in%keepClust]
-	if (refType=='one') {
-  	refClean=refList$Feats[,!colnames(refList$Feats)%in%removeFeats]
-	  injRef=refList$inj
-	  corrRefTemp=corrRef=refClean
-	  if (length(injRef)!=nrow(corrRef)) stop ('nrow(corrRef) not equal to length(injRef)')
-	}
-	if (missing(CorrObj)) {
-	  injTest=injQC
-	  corrTest=corrQC
-	  CorrObj=list(inj=injTest,Feats=corrTest)
-	} else {
-	  injTest=CorrObj$inj
-	  corrTest=CorrObj$Feats
-	  corrTest=corrTest[,!colnames(corrTest)%in%removeFeats]
-	}
-	if (length(injTest)!=nrow(corrTest)) stop ('nrow(corrTest) not equal to length(injTest)')
-	for (i in seq_along(keepClust)) {
-		n=ordDist[i]
-		corFact=corMat[,n] # take out cluster correction factors from "master" matrix
-		corrFeats=varClust[[n]]
-		if (refType=='none') { #Scheme for (suboptimal) situation without Ref samples
-		  corQC=corFact[injQC-min(injQC)+1]  # Bring out correction factors for QC samples specifically
-		  corrQCTemp[,colnames(corrQC)%in%corrFeats]=corrQC[,colnames(corrQC)%in%corrFeats]*corQC
-		  if (rmsDist(corrQCTemp)<rmsDist(corrQC)) {
-		    clustComm[n]='Corr_QC'
-		    corrQC=corrQCTemp
-		    corQC=corFact[injQC-min(injQC)+1]  # Bring out correction factors for QC samples specifically
-		    corrQC[,colnames(corrQC)%in%corrFeats]=corrQC[,colnames(corrQC)%in%corrFeats]*corQC
-		    corTest=corFact[injTest-min(injQC)+1]  # Bring out correction factors for Test samples specifically
-		    corrTest[,colnames(corrTest)%in%corrFeats]=corrTest[,colnames(corrTest)%in%corrFeats]*corTest
-		  } else {
-		    corrQCTemp=corrQC
-		  }
-		}
-		if (refType=='one') { # Scheme for situation with multiple injections of singular non-QC Ref samples
-		  corRef=corFact[injRef-min(injQC)+1]
-		  corrRefTemp[,colnames(corrRefTemp)%in%corrFeats]=corrRefTemp[,colnames(corrRefTemp)%in%corrFeats]*corRef
-  		if (rmsDist(corrRefTemp)<rmsDist(corrRef)) {
-  			clustComm[n]='Corr_1Ref'
-  			corrRef=corrRefTemp
-  			corQC=corFact[injQC-min(injQC)+1]  # Bring out correction factors for QC samples specifically
-  			corrQC[,colnames(corrQC)%in%corrFeats]=corrQC[,colnames(corrQC)%in%corrFeats]*corQC
-  			corTest=corFact[injTest-min(injQC)+1]  # Bring out correction factors for Test samples specifically
-  			corrTest[,colnames(corrTest)%in%corrFeats]=corrTest[,colnames(corrTest)%in%corrFeats]*corTest
-  		} else {
-  			corrRefTemp=corrRef
-  		}
-		}
-	}
-	if (report==TRUE) {
-		pdf(file=paste(reportPath, 'Hist_Corrected_', format(Sys.time(),format="%y%m%d_%H%M"), '.pdf', sep=''))
-	  if (!is.null(removeFeats)) {
-	    cvBefore <- cv(QCDriftCalc$QCFeats)
-	  } else {
-	    cvBefore <- cv(QCDriftCalc$QCFeats)
-	  }
-	  histCombined <- hist(c(cvBefore, cv(corrQC)),30 ,plot = FALSE)
-		breaks <- histCombined$breaks
-	  histBefore <- hist(cvBefore, plot = FALSE, breaks = breaks)
-		histAfter <- hist(cv(corrQC), plot = FALSE, breaks = breaks)
-		ymax <- max(c(histBefore$counts, histAfter$counts))
-	  hist(cvBefore,breaks = breaks, ylim = c(0,ymax), col=rgb(0,0,0,1),main='Cluster correction',xlab='CV (feature)')
-		hist(cv(corrQC), ylim = c(0,ymax), breaks = breaks,col=rgb(1,1,1,.5),add=TRUE)
-		legend('topright',legend=c('Clean','Corrected'),fill=c(rgb(0,0,0,1),rgb(1,1,1,0.5)), bty='n')
-		dev.off()
-	}
-	QCDriftCalc$actionInfo$action=clustComm
-	QCDriftCalc$QCFeatsCorr=corrQC
-	QCDriftCalc$RefType=refType
-	if (refType=='one') {
-  	QCDriftCalc$RefInjs=injRef
-  	QCDriftCalc$RefFeats=refList$Feats
-  	QCDriftCalc$RefFeatsClean=refClean
-  	QCDriftCalc$RefFeatsCorr=corrRef
-	}
-	QCDriftCalc$TestInjs=injTest
-	QCDriftCalc$TestFeats=CorrObj$Feats
-	# QCDriftCalc$TestFeatsClean=
-	QCDriftCalc$TestFeatsCorr=corrTest
-	QCCorr=QCDriftCalc
-	message("\nDrift correction of ",
-          sum(QCCorr$actionInfo$action!='None')," out of ",
-          QCCorr$clust$G," clusters")
-	if (refType=='none') message("using QC samples only.") else ("validated by external reference samples.")
-	message("\nCorrected peak table in $TestFeatsCorr\n")
-	return(QCCorr)
+driftCorr <- function(QCDriftCalc,
+                      refList = NULL,
+                      refType = c("none", "one"),
+                      CorrObj = NULL,
+                      report,
+                      reportPath) {
+    if (missing(refType)) refType <- "none"
+    deltaDist <- QCDriftCalc$deltaDist
+    varClust <- QCDriftCalc$varClust
+    removeFeats <- QCDriftCalc$removeFeats
+    if (!is.null(removeFeats)) {
+        keepClust <- QCDriftCalc$keepClust
+        corrQCTemp <- corrQC <- QCDriftCalc$QCFeatsClean
+    } else {
+        keepClust <- seq_len(QCDriftCalc$clust$G)
+        corrQCTemp <- corrQC <- QCDriftCalc$QCFeats
+    }
+    injQC <- QCDriftCalc$QCInjs
+    corMat <- QCDriftCalc$corMat
+    clustComm <- as.character(QCDriftCalc$actionInfo$action)
+    ordDist <- order(deltaDist)
+    ordDist <- ordDist[ordDist %in% keepClust]
+    if (refType == "one") {
+        refClean <- refList$Feats[, !colnames(refList$Feats) %in% removeFeats]
+        injRef <- refList$inj
+        corrRefTemp <- corrRef <- refClean
+        if (length(injRef) != nrow(corrRef)) {
+            stop("nrow(corrRef) not equal to length(injRef)")
+        }
+    }
+    if (missing(CorrObj)) {
+        injTest <- injQC
+        corrTest <- corrQC
+        CorrObj <- list(inj = injTest, Feats = corrTest)
+    } else {
+        injTest <- CorrObj$inj
+        corrTest <- CorrObj$Feats
+        corrTest <- corrTest[, !colnames(corrTest) %in% removeFeats]
+    }
+    if (length(injTest) != nrow(corrTest)) {
+        stop("nrow(corrTest) not equal to length(injTest)")
+    }
+    for (i in seq_along(keepClust)) {
+        n <- ordDist[i]
+        corFact <- corMat[, n] # take out cluster correction factors from "master" matrix
+        corrFeats <- varClust[[n]]
+        if (refType == "none") { # Scheme for (suboptimal) situation without Ref samples
+            corQC <- corFact[injQC - min(injQC) + 1] # Bring out correction factors for QC samples specifically
+            corrQCTemp[, colnames(corrQC) %in% corrFeats] <- corrQC[, colnames(corrQC) %in% corrFeats] * corQC
+            if (rmsDist(corrQCTemp) < rmsDist(corrQC)) {
+                clustComm[n] <- "Corr_QC"
+                corrQC <- corrQCTemp
+                corQC <- corFact[injQC - min(injQC) + 1] # Bring out correction factors for QC samples specifically
+                corrQC[, colnames(corrQC) %in% corrFeats] <- corrQC[, colnames(corrQC) %in% corrFeats] * corQC
+                corTest <- corFact[injTest - min(injQC) + 1] # Bring out correction factors for Test samples specifically
+                corrTest[, colnames(corrTest) %in% corrFeats] <- corrTest[, colnames(corrTest) %in% corrFeats] * corTest
+            } else {
+                corrQCTemp <- corrQC
+            }
+        }
+        if (refType == "one") { # Scheme for situation with multiple injections of singular non-QC Ref samples
+            corRef <- corFact[injRef - min(injQC) + 1]
+            corrRefTemp[, colnames(corrRefTemp) %in% corrFeats] <- corrRefTemp[, colnames(corrRefTemp) %in% corrFeats] * corRef
+            if (rmsDist(corrRefTemp) < rmsDist(corrRef)) {
+                clustComm[n] <- "Corr_1Ref"
+                corrRef <- corrRefTemp
+                corQC <- corFact[injQC - min(injQC) + 1] # Bring out correction factors for QC samples specifically
+                corrQC[, colnames(corrQC) %in% corrFeats] <- corrQC[, colnames(corrQC) %in% corrFeats] * corQC
+                corTest <- corFact[injTest - min(injQC) + 1] # Bring out correction factors for Test samples specifically
+                corrTest[, colnames(corrTest) %in% corrFeats] <- corrTest[, colnames(corrTest) %in% corrFeats] * corTest
+            } else {
+                corrRefTemp <- corrRef
+            }
+        }
+    }
+    if (report == TRUE) {
+        pdf(file <- paste(reportPath,
+            "Hist_Corrected_",
+            format(Sys.time(), format = "%y%m%d_%H%M"),
+            ".pdf",
+            sep = ""
+        ))
+        if (!is.null(removeFeats)) {
+            cvBefore <- cv(QCDriftCalc$QCFeats)
+        } else {
+            cvBefore <- cv(QCDriftCalc$QCFeats)
+        }
+        histCombined <- hist(c(cvBefore, cv(corrQC)), 30, plot = FALSE)
+        breaks <- histCombined$breaks
+        histBefore <- hist(cvBefore, plot = FALSE, breaks = breaks)
+        histAfter <- hist(cv(corrQC), plot = FALSE, breaks = breaks)
+        ymax <- max(c(histBefore$counts, histAfter$counts))
+        hist(cvBefore,
+            breaks = breaks,
+            ylim = c(0, ymax),
+            col = rgb(0, 0, 0, 1),
+            main = "Cluster correction",
+            xlab = "CV (feature)"
+        )
+        hist(cv(corrQC),
+            ylim = c(0, ymax),
+            breaks = breaks,
+            col = rgb(1, 1, 1, .5),
+            add = TRUE
+        )
+        legend("topright",
+            legend = c("Clean", "Corrected"),
+            fill = c(rgb(0, 0, 0, 1), rgb(1, 1, 1, 0.5)), bty = "n"
+        )
+        dev.off()
+    }
+    QCDriftCalc$actionInfo$action <- clustComm
+    QCDriftCalc$QCFeatsCorr <- corrQC
+    QCDriftCalc$RefType <- refType
+    if (refType == "one") {
+        QCDriftCalc$RefInjs <- injRef
+        QCDriftCalc$RefFeats <- refList$Feats
+        QCDriftCalc$RefFeatsClean <- refClean
+        QCDriftCalc$RefFeatsCorr <- corrRef
+    }
+    QCDriftCalc$TestInjs <- injTest
+    QCDriftCalc$TestFeats <- CorrObj$Feats
+    # QCDriftCalc$TestFeatsClean=
+    QCDriftCalc$TestFeatsCorr <- corrTest
+    QCCorr <- QCDriftCalc
+    message(
+        "\nDrift correction of ",
+        sum(QCCorr$actionInfo$action != "None"), " out of ",
+        QCCorr$clust$G, " clusters"
+    )
+    if (refType == "none") {
+        message("using QC samples only.")
+    } else {
+        ("validated by external reference samples.")
+    }
+    message("\nCorrected peak table in $TestFeatsCorr\n")
+    return(QCCorr)
 }
 
 #' DC: Remove features not passing QC test
@@ -330,72 +489,114 @@ driftCorr=function(QCDriftCalc,refList=NULL,refType=c('none','one'),CorrObj=NULL
 #' @return QCcvs: CVs per features kept within the final peaktable
 #' @noRd
 ## Remove individual variables with CV>limit
-cleanVar=function(QCCorr,CVlimit,report=FALSE, reportPath) {
-	QCFeats=QCCorr$QCFeats
-	removeFeats=QCCorr$removeFeats
-	if (!is.null(removeFeats)) {
-	  QCFeatsClean=QCCorr$QCFeatsClean
-	} else {
-	  QCFeatsClean=QCCorr$QCFeats
-	}
-	QCFeatsCorr=QCCorr$QCFeatsCorr
-	cvIndex=which(cv(QCFeatsCorr)>CVlimit)
-	finalIndex <- rep(TRUE,ncol(QCFeatsCorr))
-	if (length(cvIndex)>0) finalIndex[cvIndex] <- FALSE
-	QCFeatsFinal=QCFeatsCorr[,finalIndex]
-	if (QCCorr$RefType=='one') {
-	  RefFeatsFinal=QCCorr$RefFeatsCorr[,finalIndex]
-	}
-	TestFeatsFinal=QCCorr$TestFeatsCorr[,finalIndex]
-	finalVars=colnames(QCFeatsFinal)
-	cvFeats=mean(cv(QCFeats))      # 0.2276
-	cvFeatsClean=mean(cv(QCFeatsClean))    # 0.1455
-	cvFeatsCorr=mean(cv(QCFeatsCorr))   # 0.1144
-	cvFeatsFinal=mean(cv(QCFeatsFinal)) # 0.1070
-	QCcvs=data.frame(cvFeats=cvFeats,cvFeatsClean=cvFeatsClean,cvFeatsCorr=cvFeatsCorr,cvFeatsFinal=cvFeatsFinal)
-	if (report==TRUE) {
-		pdf(file=paste(reportPath, 'Hist_Final_',format(Sys.time(),format="%y%m%d_%H%M"),'.pdf',sep=''))
-		histCombined <- hist(c(cv(QCFeatsClean), cv(QCFeatsFinal)), 30, plot=FALSE)
-		breaks <- histCombined$breaks
-		histBefore <- hist(cv(QCFeatsClean), breaks = breaks, plot=FALSE)
-		histAfter <- hist(cv(QCFeatsFinal), breaks = breaks, plot=FALSE)
-		ymax <- max(c(histBefore$counts, histAfter$counts))
-		hist(cv(QCFeatsClean),breaks=breaks, ylim=c(0, ymax), col=rgb(0,0,0,.75),main='Cluster cleanup',xlab='CV (feature)')
-		hist(cv(QCFeatsFinal),breaks=breaks, ylim=c(0, ymax),col=rgb(1,1,1,.8),add=TRUE)
-		legend('topright',legend=c('Clean','Final'),fill=c(rgb(0,0,0,1),rgb(1,1,1,0.5)), bty = 'n')
-		dev.off()
-	}
-	if (QCCorr$RefType=='one') {
-	  rmsdRef=rmsDist(QCCorr$RefFeats)       # 5800887
-	  rmsdRefClean=rmsDist(QCCorr$RefFeatsClean)     # 3670441
-	  rmsdRefCorr=rmsDist(QCCorr$RefFeatsCorr)   # 2264153
-	  rmsdRefFinal=rmsDist(RefFeatsFinal) # 2209906
-	  RefRMSD=data.frame(rmsdRef=rmsdRef,rmsdRefClean=rmsdRefClean,rmsdRefCorr=rmsdRefCorr,rmsdRefFinal=rmsdRefFinal)
-	  QCCorr$RefFeatsFinal=RefFeatsFinal
-	  QCCorr$RefRMSD=RefRMSD
-	}
-	# Write algorithm to remove "removed" variables from clusters
-	varClust=QCCorr$varClust
-	N=length(varClust)
-	CVAfter=nFeatAfter=numeric(N)
-	for (n in seq_len(N)) {
-		vars=varClust[[n]]
-		clustVars=as.matrix(QCFeatsFinal[,finalVars%in%vars])
-		CVAfter[n]=mean(cv(clustVars))
-		nFeatAfter[n]=ncol(clustVars)
-	}
-	actionInfo=QCCorr$actionInfo
-	actionInfo=cbind(actionInfo[,seq_len(2)],nFeatAfter,actionInfo[,3:5],CVAfter)
-	colnames(actionInfo)[2:3]=c('nBefore','nAfter')
-	QCCorr$actionInfo=actionInfo
-	QCCorr$QCFeatsFinal=QCFeatsFinal
-	QCCorr$TestFeatsFinal=TestFeatsFinal
-	QCCorr$finalVars=finalVars
-	QCCorr$QCcvs=QCcvs
-	QCFinal=QCCorr
-	message('\nFiltering by QC CV < ',CVlimit,' -> ', sum(QCFinal$actionInfo$nAfter), ' features out of ', sum(QCFinal$actionInfo$nBefore), ' kept in the peak table. ')
-	message('\nPeak table in $TestFeatsFinal, final variables in $finalVars and cluster info in $actionInfo.')
-	return(QCFinal)
+cleanVar <- function(QCCorr,
+                     CVlimit,
+                     report = FALSE,
+                     reportPath) {
+    QCFeats <- QCCorr$QCFeats
+    removeFeats <- QCCorr$removeFeats
+    if (!is.null(removeFeats)) {
+        QCFeatsClean <- QCCorr$QCFeatsClean
+    } else {
+        QCFeatsClean <- QCCorr$QCFeats
+    }
+    QCFeatsCorr <- QCCorr$QCFeatsCorr
+    cvIndex <- which(cv(QCFeatsCorr) > CVlimit)
+    finalIndex <- rep(TRUE, ncol(QCFeatsCorr))
+    if (length(cvIndex) > 0) finalIndex[cvIndex] <- FALSE
+    QCFeatsFinal <- QCFeatsCorr[, finalIndex]
+    if (QCCorr$RefType == "one") {
+        RefFeatsFinal <- QCCorr$RefFeatsCorr[, finalIndex]
+    }
+    TestFeatsFinal <- QCCorr$TestFeatsCorr[, finalIndex]
+    finalVars <- colnames(QCFeatsFinal)
+    cvFeats <- mean(cv(QCFeats)) # 0.2276
+    cvFeatsClean <- mean(cv(QCFeatsClean)) # 0.1455
+    cvFeatsCorr <- mean(cv(QCFeatsCorr)) # 0.1144
+    cvFeatsFinal <- mean(cv(QCFeatsFinal)) # 0.1070
+    QCcvs <- data.frame(
+        cvFeats = cvFeats,
+        cvFeatsClean = cvFeatsClean,
+        cvFeatsCorr = cvFeatsCorr,
+        cvFeatsFinal = cvFeatsFinal
+    )
+    if (report == TRUE) {
+        pdf(file = paste(reportPath,
+            "Hist_Final_",
+            format(Sys.time(), format = "%y%m%d_%H%M"),
+            ".pdf",
+            sep = ""
+        ))
+        histCombined <- hist(c(cv(QCFeatsClean), cv(QCFeatsFinal)), 30, plot = FALSE)
+        breaks <- histCombined$breaks
+        histBefore <- hist(cv(QCFeatsClean), breaks = breaks, plot = FALSE)
+        histAfter <- hist(cv(QCFeatsFinal), breaks = breaks, plot = FALSE)
+        ymax <- max(c(histBefore$counts, histAfter$counts))
+        hist(cv(QCFeatsClean),
+            breaks = breaks,
+            ylim = c(0, ymax),
+            col = rgb(0, 0, 0, .75),
+            main = "Cluster cleanup",
+            xlab = "CV (feature)"
+        )
+        hist(cv(QCFeatsFinal),
+            breaks = breaks,
+            ylim = c(0, ymax),
+            col = rgb(1, 1, 1, .8),
+            add = TRUE
+        )
+        legend("topright",
+            legend = c("Clean", "Final"),
+            fill = c(rgb(0, 0, 0, 1), rgb(1, 1, 1, 0.5)),
+            bty = "n"
+        )
+        dev.off()
+    }
+    if (QCCorr$RefType == "one") {
+        rmsdRef <- rmsDist(QCCorr$RefFeats) # 5800887
+        rmsdRefClean <- rmsDist(QCCorr$RefFeatsClean) # 3670441
+        rmsdRefCorr <- rmsDist(QCCorr$RefFeatsCorr) # 2264153
+        rmsdRefFinal <- rmsDist(RefFeatsFinal) # 2209906
+        RefRMSD <- data.frame(
+            rmsdRef = rmsdRef,
+            rmsdRefClean = rmsdRefClean,
+            rmsdRefCorr = rmsdRefCorr,
+            rmsdRefFinal = rmsdRefFinal
+        )
+        QCCorr$RefFeatsFinal <- RefFeatsFinal
+        QCCorr$RefRMSD <- RefRMSD
+    }
+    # Write algorithm to remove "removed" variables from clusters
+    varClust <- QCCorr$varClust
+    N <- length(varClust)
+    CVAfter <- nFeatAfter <- numeric(N)
+    for (n in seq_len(N)) {
+        vars <- varClust[[n]]
+        clustVars <- as.matrix(QCFeatsFinal[, finalVars %in% vars])
+        CVAfter[n] <- mean(cv(clustVars))
+        nFeatAfter[n] <- ncol(clustVars)
+    }
+    actionInfo <- QCCorr$actionInfo
+    actionInfo <- cbind(
+        actionInfo[, seq_len(2)],
+        nFeatAfter, actionInfo[, 3:5],
+        CVAfter
+    )
+    colnames(actionInfo)[2:3] <- c("nBefore", "nAfter")
+    QCCorr$actionInfo <- actionInfo
+    QCCorr$QCFeatsFinal <- QCFeatsFinal
+    QCCorr$TestFeatsFinal <- TestFeatsFinal
+    QCCorr$finalVars <- finalVars
+    QCCorr$QCcvs <- QCcvs
+    QCFinal <- QCCorr
+    message(
+        "\nFiltering by QC CV < ", CVlimit, " -> ",
+        sum(QCFinal$actionInfo$nAfter), " features out of ",
+        sum(QCFinal$actionInfo$nBefore), " kept in the peak table. "
+    )
+    message("\nPeak table in $TestFeatsFinal, final variables in $finalVars
+          and cluster info in $actionInfo.")
+    return(QCFinal)
 }
 
 
@@ -413,12 +614,46 @@ cleanVar=function(QCCorr,CVlimit,report=FALSE, reportPath) {
 #'
 #' @return A drift corrected object with QC features CV<limit containing final peak table
 #' @noRd
-driftWrap=function(QCObject, modelNames, G, BatchObject, RefObject=NULL, smoothFunc, spar, CVlimit, report, reportPath) {
-  if (is.null(RefObject)) refType='none' else refType='one'
-	driftList=clust(QCObject$inj,QCObject$Feats,modelNames=modelNames, G=G, report=report, reportPath = reportPath)
-	driftList=driftCalc(driftList, smoothFunc = smoothFunc, spar = spar, report=report, reportPath)
-	driftList=driftCorr(QCDriftCalc = driftList,refList=RefObject,refType=refType,CorrObj=BatchObject,report=report, reportPath = reportPath)
-	driftList=cleanVar(driftList,CVlimit=CVlimit,report=report, reportPath=reportPath)
-	return(driftList)
+driftWrap <- function(QCObject,
+                      modelNames,
+                      G,
+                      BatchObject,
+                      RefObject = NULL,
+                      smoothFunc,
+                      spar,
+                      CVlimit,
+                      report,
+                      reportPath) {
+    if (is.null(RefObject)) {
+        refType <- "none"
+    } else {
+        refType <- "one"
+    }
+    driftList <- clust(QCObject$inj,
+        QCObject$Feats,
+        modelNames = modelNames,
+        G = G,
+        report = report,
+        reportPath = reportPath
+    )
+    driftList <- driftCalc(driftList,
+        smoothFunc = smoothFunc,
+        spar = spar,
+        report = report,
+        reportPath
+    )
+    driftList <- driftCorr(
+        QCDriftCalc = driftList,
+        refList = RefObject,
+        refType = refType,
+        CorrObj = BatchObject,
+        report = report,
+        reportPath = reportPath
+    )
+    driftList <- cleanVar(driftList,
+        CVlimit = CVlimit,
+        report = report,
+        reportPath = reportPath
+    )
+    return(driftList)
 }
-

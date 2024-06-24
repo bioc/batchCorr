@@ -17,8 +17,9 @@ biblio-style: apalike
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "##")
+    collapse = TRUE,
+    comment = "##"
+)
 ```
 
 # Motivation
@@ -32,8 +33,9 @@ The batchCorr package reduces unwanted variation by way of between-batch alignme
 To install ```batchCorr```, install BiocManager first, if it is not installed. Afterwards use the install function from BiocManager.
 
 ```{r, eval = FALSE}
-if (!requireNamespace("BiocManager", quietly = TRUE))
+if (!requireNamespace("BiocManager", quietly = TRUE)) {
     install.packages("BiocManager")
+}
 BiocManager::install("batchCorr")
 ```
 
@@ -43,6 +45,7 @@ The example data allows for demonstration of all core ```batchCorr``` functional
 
 ```{r}
 library(batchCorr)
+library(mclust)
 data("ThreeBatchData")
 ```
 
@@ -75,17 +78,19 @@ Shifts in retention time (RT) and mass-to-charge ratio (m/z) across batches resu
 4. Aligning of feature clusters resulting in new peak table
 
 ```{r}
-# Extract peakinfo (i.e. m/z and rt of features), 
-# These column names have 2 leading characters describing LC-MS mode 
+# Extract peakinfo (i.e. m/z and rt of features),
+# These column names have 2 leading characters describing LC-MS mode
 # -> start at 3
-peakIn <- peakInfo(PT = PTnofill, sep = '@', start = 3) 
+peakIn <- peakInfo(PT = PTnofill, sep = "@", start = 3)
 # Perform multi-batch alignment
-alignBat <- alignBatches(peakInfo = peakIn, PeakTabNoFill = PTnofill,
-                         PeakTabFilled = PTfill, batches = meta$batch, 
-                         sampleGroups = meta$grp, selectGroup = 'QC',
-                         report = FALSE)
+alignBat <- alignBatches(
+    peakInfo = peakIn, PeakTabNoFill = PTnofill,
+    PeakTabFilled = PTfill, batches = meta$batch,
+    sampleGroups = meta$grp, selectGroup = "QC",
+    report = FALSE
+)
 # Extract new peak table
-PT=alignBat$PTalign
+PT <- alignBat$PTalign
 ```
 
 ## Within-batch drift correction
@@ -110,31 +115,43 @@ Drift in abundance within a batch gives rise to unwanted variation which can be 
 
 ```{r, results = 'hide', output = FALSE}
 # Batch B
-batchB <- getBatch(peakTable = PT, meta = meta, 
-                   batch = meta$batch, select = 'B')
-BCorr <- correctDrift(peakTable = batchB$peakTable, 
-                      injections = batchB$meta$inj, 
-                      sampleGroups = batchB$meta$grp, QCID = 'QC', 
-                      G = seq(5,35,by=3), modelNames = c('VVE', 'VEE'),
-                      report = FALSE)
+batchB <- getBatch(
+    peakTable = PT, meta = meta,
+    batch = meta$batch, select = "B"
+)
+BCorr <- correctDrift(
+    peakTable = batchB$peakTable,
+    injections = batchB$meta$inj,
+    sampleGroups = batchB$meta$grp, QCID = "QC",
+    G = seq(5, 35, by = 3), modelNames = c("VVE", "VEE"),
+    report = FALSE
+)
 # Batch F
-batchF <- getBatch(peakTable = PT, meta = meta, 
-                   batch = meta$batch, select = 'F')
-FCorr <- correctDrift(peakTable = batchF$peakTable, 
-                      injections = batchF$meta$inj, 
-                      sampleGroups = batchF$meta$grp, 
-                      QCID = 'QC', G = seq(5,35,by=3), 
-                      modelNames = c('VVE', 'VEE'), 
-                      report = FALSE)
+batchF <- getBatch(
+    peakTable = PT, meta = meta,
+    batch = meta$batch, select = "F"
+)
+FCorr <- correctDrift(
+    peakTable = batchF$peakTable,
+    injections = batchF$meta$inj,
+    sampleGroups = batchF$meta$grp,
+    QCID = "QC", G = seq(5, 35, by = 3),
+    modelNames = c("VVE", "VEE"),
+    report = FALSE
+)
 # Batch H
-batchH <- getBatch(peakTable = PT, meta = meta, 
-                   batch = meta$batch, select = 'H')
-HCorr <- correctDrift(peakTable = batchH$peakTable, 
-                      injections = batchH$meta$inj, 
-                      sampleGroups = batchH$meta$grp, 
-                      QCID = 'QC', G = seq(5,35,by=3),
-                      modelNames = c('VVE', 'VEE'),
-                      report = FALSE)
+batchH <- getBatch(
+    peakTable = PT, meta = meta,
+    batch = meta$batch, select = "H"
+)
+HCorr <- correctDrift(
+    peakTable = batchH$peakTable,
+    injections = batchH$meta$inj,
+    sampleGroups = batchH$meta$grp,
+    QCID = "QC", G = seq(5, 35, by = 3),
+    modelNames = c("VVE", "VEE"),
+    report = FALSE
+)
 ```
 
 ## Between-batch normalization
@@ -150,10 +167,12 @@ If the long-term QC samples are not considered reliable according to the above d
 # Merging includes a quality control step, where features with QC CV < the
 # limit (supplied to CorrectDrift) in a specified proportion of batches
 # (default = 0.5) are excluded
-mergedData <- mergeBatches(list(BCorr,FCorr,HCorr))
-normData <- normalizeBatches(peakTableCorr = mergedData$peakTableCorr, 
-                             batches = meta$batch, sampleGroup = meta$grp,
-                             refGroup = 'Ref', population = 'all')
+mergedData <- mergeBatches(list(BCorr, FCorr, HCorr))
+normData <- normalizeBatches(
+    peakTableCorr = mergedData$peakTableCorr,
+    batches = meta$batch, sampleGroup = meta$grp,
+    refGroup = "Ref", population = "all"
+)
 PTnorm <- normData$peakTable
 ```
 
