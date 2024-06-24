@@ -18,39 +18,84 @@
 #' @export
 #'
 #' @examples
-#' \dontshow{.old_wd <- setwd(tempdir())}
-#' data('ThreeBatchData')
+#' \dontshow{
+#' .old_wd <- setwd(tempdir())
+#' }
+#' data("ThreeBatchData")
 #' # Extract peakinfo (i.e. m/z and rt of features). These column names have 2
 #' # leading characters describing LC-MS mode -> start at 3
-#' peakIn <- peakInfo(PT = PTnofill, sep = '@', start = 3)  
+#' peakIn <- peakInfo(PT = PTnofill, sep = "@", start = 3)
 #' # Perform multi-batch alignment
-#' alignBat <- alignBatches(peakInfo = peakIn, PeakTabNoFill = PTnofill,
-#'                          PeakTabFilled = PTfill, batches = meta$batch,
-#'                          sampleGroups = meta$grp, selectGroup = 'QC',
-#'                          reportPath = "drift_report/")
+#' alignBat <- alignBatches(
+#'     peakInfo = peakIn, PeakTabNoFill = PTnofill,
+#'     PeakTabFilled = PTfill, batches = meta$batch,
+#'     sampleGroups = meta$grp, selectGroup = "QC",
+#'     reportPath = "drift_report/"
+#' )
 #' # Extract new peak table
-#' PT <- alignBat$PTalign 
-#' \dontshow{setwd(.old_wd)}
-alignBatches=function(peakInfo, PeakTabNoFill, PeakTabFilled, batches, sampleGroups, selectGroup = "QC", NAhard = 0.8, mzdiff=0.002, rtdiff=15,  report=TRUE, reportPath = NULL) {
-  if (report & is.null(reportPath)) stop("Argument 'reportPath' is missing")
-  if (anyNA(PeakTabFilled)) stop("Missing values in PeakTabFilled")
-  if(!selectGroup %in% sampleGroups) {
-    stop("Group ", selectGroup," not in metadata.")
-  }
-  if (report & is.null(reportPath)) stop("Argument 'reportPath' is missing")
-  if (report & !is.null(reportPath)) {
-    if (!endsWith(reportPath, "/")) {
-      message("Adding a slash to file path to allow proper folder structure")
-      reportPath <- paste0(reportPath, "/")
+#' PT <- alignBat$PTalign
+#' \dontshow{
+#' setwd(.old_wd)
+#' }
+alignBatches <- function(peakInfo,
+                         PeakTabNoFill,
+                         PeakTabFilled,
+                         batches,
+                         sampleGroups,
+                         selectGroup = "QC",
+                         NAhard = 0.8,
+                         mzdiff = 0.002,
+                         rtdiff = 15,
+                         report = TRUE,
+                         reportPath = NULL) {
+    if (report & is.null(reportPath)) {
+        stop("Argument 'reportPath' is missing")
     }
-    if (!file.exists(reportPath)) {
-      message("Creating folder ", reportPath)
-      dir.create(reportPath, recursive = TRUE)
+    if (anyNA(PeakTabFilled)) {
+        stop("Missing values in PeakTabFilled")
     }
-  }
-  bFlag <- batchFlag(PTnofill = PeakTabNoFill, batch = batches, sampleGroup = sampleGroups, peakInfo = peakInfo, NAhard = NAhard)
-  aIQ <- alignIndex(batchflag = bFlag, grpType=selectGroup, mzdiff=mzdiff, rtdiff=rtdiff, report=report, reportPath = reportPath)
-  if(is.null(aIQ)) return(NULL)
-  if (report) plotAlign(batchflag = bFlag, alignindex = aIQ, reportPath = reportPath)
-  bAlign <- batchAlign(batchflag = bFlag, alignindex = aIQ, peaktable_filled = PeakTabFilled, batch = batches)
+    if (!selectGroup %in% sampleGroups) {
+        stop("Group ", selectGroup, " not in metadata.")
+    }
+    if (report & is.null(reportPath)) {
+        stop("Argument 'reportPath' is missing")
+    }
+    if (report & !is.null(reportPath)) {
+        if (!endsWith(reportPath, "/")) {
+            message("Adding a slash to file path to allow proper folder structure")
+            reportPath <- paste0(reportPath, "/")
+        }
+        if (!file.exists(reportPath)) {
+            message("Creating folder ", reportPath)
+            dir.create(reportPath, recursive = TRUE)
+        }
+    }
+    bFlag <- batchFlag(
+        PTnofill = PeakTabNoFill,
+        batch = batches,
+        sampleGroup = sampleGroups,
+        peakInfo = peakInfo,
+        NAhard = NAhard
+    )
+    aIQ <- alignIndex(
+        batchflag = bFlag,
+        grpType = selectGroup,
+        mzdiff = mzdiff,
+        rtdiff = rtdiff,
+        report = report,
+        reportPath = reportPath
+    )
+    if (is.null(aIQ)) {
+        return(NULL)
+    }
+    if (report) {
+        plotAlign(batchflag = bFlag, alignindex = aIQ, reportPath = reportPath)
+    }
+
+    bAlign <- batchAlign(
+        batchflag = bFlag,
+        alignindex = aIQ,
+        peaktable_filled = PeakTabFilled,
+        batch = batches
+    )
 }

@@ -16,37 +16,42 @@
 #' @inherit correctDrift return examples
 #'
 #' @export
-mergeBatches <- function(batchList, qualRatio=0.5) {
-  # Determining number of batches and batch-ratio needed to surpass to keep a feature
-  nBatch <- length(batchList)
-  nQual <- ceiling(qualRatio*nBatch)
-  #If no batchnames supplied in batchList names batches from 1-nBatches
-  if(is.null(names(batchList))) {
-    batchNames <- seq_len(nBatch)
-  } else {
-    batchNames <- names(batchList)
-  }
-  # Settings up lists and vectors to store batch-specific information in
-  nSamp <- numeric(nBatch)
-  injections <- list()
-  qualFeatures <- list()
-  peakTablesOrg <- peakTablesCorr <- list()
-  # Extract relevant data from corr objects
-  for (batch in seq_len(nBatch)) {
-    nSamp[batch] <- length(batchList[[batch]]$TestInjs)
-    injections[[batch]] <- batchList[[batch]]$TestInjs
-    qualFeatures[[batch]] <- batchList[[batch]]$finalVars
-    peakTablesOrg[[batch]] <- batchList[[batch]]$TestFeats
-    peakTablesCorr[[batch]] <- batchList[[batch]]$TestFeatsCorr
-  }
-  # Aggregate data and merge
-  injections <- do.call(c,injections)
-  batches <- rep(batchNames,nSamp)
-  qualFeatures <- do.call(c,qualFeatures)
-  qualFeatures <- names(which(table(qualFeatures)>=nQual))
-  peakTablesOrg <- do.call(rbind,peakTablesOrg)
-  peakTablesOrg <- peakTablesOrg[,colnames(peakTablesOrg)%in%qualFeatures]
-  peakTablesCorr <- do.call(rbind,peakTablesCorr)
-  peakTablesCorr <- peakTablesCorr[,colnames(peakTablesCorr)%in%qualFeatures]
-  return(list(peakTableOrg=peakTablesOrg, peakTableCorr=peakTablesCorr, batch=batches, injection=injections))
+mergeBatches <- function(batchList, qualRatio = 0.5) {
+    # Determining number of batches and batch-ratio needed to surpass to keep a feature
+    nBatch <- length(batchList)
+    nQual <- ceiling(qualRatio * nBatch)
+    # If no batchnames supplied in batchList names batches from 1-nBatches
+    if (is.null(names(batchList))) {
+        batchNames <- seq_len(nBatch)
+    } else {
+        batchNames <- names(batchList)
+    }
+    # Settings up lists and vectors to store batch-specific information in
+    nSamp <- numeric(nBatch)
+    injections <- list()
+    qualFeatures <- list()
+    peakTablesOrg <- peakTablesCorr <- list()
+    # Extract relevant data from corr objects
+    for (batch in seq_len(nBatch)) {
+        nSamp[batch] <- length(batchList[[batch]]$TestInjs)
+        injections[[batch]] <- batchList[[batch]]$TestInjs
+        qualFeatures[[batch]] <- batchList[[batch]]$finalVars
+        peakTablesOrg[[batch]] <- batchList[[batch]]$TestFeats
+        peakTablesCorr[[batch]] <- batchList[[batch]]$TestFeatsCorr
+    }
+    # Aggregate data and merge
+    injections <- do.call(c, injections)
+    batches <- rep(batchNames, nSamp)
+    qualFeatures <- do.call(c, qualFeatures)
+    qualFeatures <- names(which(table(qualFeatures) >= nQual))
+    peakTablesOrg <- do.call(rbind, peakTablesOrg)
+    peakTablesOrg <- peakTablesOrg[, colnames(peakTablesOrg) %in% qualFeatures]
+    peakTablesCorr <- do.call(rbind, peakTablesCorr)
+    peakTablesCorr <- peakTablesCorr[, colnames(peakTablesCorr) %in% qualFeatures]
+    return(list(
+        peakTableOrg = peakTablesOrg,
+        peakTableCorr = peakTablesCorr,
+        batch = batches,
+        injection = injections
+    ))
 }

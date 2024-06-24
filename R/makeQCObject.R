@@ -5,17 +5,21 @@
 #'
 #' @return QC object
 #'
-#' @examples QCObject=makeQCObject(QCPeakTable, QCInjections)
+#' @examples QCObject <- makeQCObject(QCPeakTable, QCInjections)
 #'
 #' @noRd
-makeQCObject=function (peakTable, inj)
-{
-  if(length(inj)!=nrow(peakTable)) stop ('mismatch number of samples in peak table and injection sequence')
-  QCCV = cv(peakTable)
-  QCscale = scale(peakTable, center = FALSE)
-  NAs = colSums(is.na(QCscale)) > 0
-  QCRawNaRm = peakTable[, !NAs]
-  QCFeats = QCscale[, !NAs]
-  return(list(inj = inj, Feats = QCFeats, RawFeats = peakTable,
-              RawFeatsNaRm = QCRawNaRm, NAs = NAs))
+makeQCObject <- function(peakTable, inj) {
+    if (length(inj) != nrow(peakTable)) {
+        stop("mismatch number of samples in peak table and injection sequence")
+    }
+    QCCV <- cv(peakTable)
+    QCscale <- scale(peakTable, center = FALSE)
+    NAs <- colSums(is.na(QCscale)) > 0
+    QCRawNaRm <- peakTable[, !NAs]
+    QCFeats <- QCscale[, !NAs]
+
+    return(list(
+        inj = inj, Feats = QCFeats, RawFeats = peakTable,
+        RawFeatsNaRm = QCRawNaRm, NAs = NAs
+    ))
 }
