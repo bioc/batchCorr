@@ -13,13 +13,17 @@
 #' @return mz: m/z values of the features
 #' @return rt: rt values of the features
 #' @noRd
-batchFlag <- function(PTnofill, batch, sampleGroup, peakInfo, NAhard) {
+batchFlag <- function(PTnofill,
+                      batch,
+                      sampleGroup,
+                      peakInfo,
+                      NAhard) {
     uniqBatch <- unique(batch)
     uniqGrp <- unique(sampleGroup)
     n <- length(uniqBatch) * length(uniqGrp)
     flagHard <- matrix(nrow <- n, ncol <- ncol(PTnofill))
     colnames(flagHard) <- colnames(PTnofill)
-    batchMeta <- matrix(nrow <- n, ncol <- 2)
+    batchMeta <- matrix(nrow = n, ncol = 2)
     colnames(batchMeta) <- c("batch", "sampleGroup")
     i <- 0
     for (b in uniqBatch) {
