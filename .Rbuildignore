@@ -1,8 +1,0 @@
-^renv$
-^renv\.lock$
-^Meta$
-^doc$
-^data-raw$
-^.*\.Rproj$
-^\.Rproj\.user$
-^.*\.lintr$
