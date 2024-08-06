@@ -21,7 +21,7 @@ batchFlag <- function(PTnofill,
     uniqBatch <- unique(batch)
     uniqGrp <- unique(sampleGroup)
     n <- length(uniqBatch) * length(uniqGrp)
-    flagHard <- matrix(nrow <- n, ncol <- ncol(PTnofill))
+    flagHard <- matrix(nrow = n, ncol = ncol(PTnofill))
     colnames(flagHard) <- colnames(PTnofill)
     batchMeta <- matrix(nrow = n, ncol = 2)
     colnames(batchMeta) <- c("batch", "sampleGroup")
@@ -29,7 +29,7 @@ batchFlag <- function(PTnofill,
     for (b in uniqBatch) {
         for (g in uniqGrp) {
             i <- i + 1
-            PTsub <- PTnofill[batch == b & sampleGroup == g, , drop <- FALSE]
+            PTsub <- PTnofill[batch == b & sampleGroup == g,, drop = FALSE]
             NAs <- apply(PTsub, 2, function(x) sum(is.na(x)) / length(x))
             flagHard[i, ] <- ifelse(NAs >= NAhard, 1, 0)
             batchMeta[i, ] <- c(b, g)
@@ -38,10 +38,10 @@ batchFlag <- function(PTnofill,
     # Convert flags to !NA flags
     flagHard <- 1 - flagHard
     return(batchFlag <- list(
-        meta <- batchMeta,
-        flagHard <- flagHard,
-        mz <- peakInfo[, 1],
-        rt <- peakInfo[, 2]
+        meta = batchMeta,
+        flagHard = flagHard,
+        mz = peakInfo[, 1],
+        rt = peakInfo[, 2]
     ))
 }
 

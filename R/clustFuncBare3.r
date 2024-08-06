@@ -78,7 +78,7 @@ clust <- function(QCInjs,
             {
                 merged_models <- mclustBICupdate(merged_models, models[[i]])
             },
-            error <- function(e) {
+            error = function(e) {
                 if (grepl("missing value where TRUE/FALSE needed", e)) {
                     message(
                         "Missing BIC values for some model(s). You may want to check",

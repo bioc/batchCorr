@@ -1,4 +1,3 @@
-context("getBatch")
 test_that("getBatch", {
     # Check that batch collected using getBatch is correct
     batchF <- getBatch(PTfill, meta, meta$batch, "F")
