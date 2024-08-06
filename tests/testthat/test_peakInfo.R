@@ -1,5 +1,3 @@
-library(testthat)
-
 test_that("peakInfo", {
     # Checking that number of columns is the same as rows in the returned DF
     mz_rt <- peakInfo(PT = PTfill, sep = "@", timepos = 2, start = 3)
