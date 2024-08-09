@@ -1,8 +1,10 @@
 #' Extract specific batch from peaktable and metadata
 #'
 #' @param peakTable Multi-batch peak table
-#' @param meta Multi-batch metadata (including e.g. batch, injection sequence, sample tye, sample name, ...)
-#' @param batch vector (length = nSamples) containing batch information (e.g. A, B, C)
+#' @param meta Multi-batch metadata (including e.g. batch, injection sequence, 
+#' sample tye, sample name, ...)
+#' @param batch vector (length = nSamples) containing batch information 
+#' (e.g. A, B, C)
 #' @param select which batch to extract
 #'
 #' @return list object
@@ -60,8 +62,10 @@ getBatch <- function(peakTable, meta, batch, select) {
 #'
 #' Matches pattern in `select` to sample group and extracts
 #' @param peakTable Multi-batch peak table
-#' @param meta Multi-batch metadata (including e.g. batch, injection sequence, sample tye, sample name, ...)
-#' @param sampleGroup vector (length = nSamples) containing sample group information (e.g. QC, Sample, Reference)
+#' @param meta Multi-batch metadata (including e.g. batch, injection sequence,
+#'  sample tye, sample name, ...)
+#' @param sampleGroup vector (length = nSamples) containing sample group
+#'  information (e.g. QC, Sample, Reference)
 #' @param select which sample group to extract
 #'
 #' @return list object
@@ -71,8 +75,10 @@ getBatch <- function(peakTable, meta, batch, select) {
 #'
 #' @examples
 #' data(ThreeBatchData)
-#' batchB <- getBatch(peakTable = PTfill, meta = meta, batch = meta$batch, select = "B")
-#' batchBQC <- .getGroup(peakTable = batchB$peakTable, meta = batchB$meta, sampleGroup = batchB$Meta$grp, select = "QC")
+#' batchB <- getBatch(peakTable = PTfill, meta = meta, batch = meta$batch,
+#'  select = "B")
+#' batchBQC <- .getGroup(peakTable = batchB$peakTable, meta = batchB$meta,
+#'  sampleGroup = batchB$Meta$grp, select = "QC")
 #' @noRd
 .getGroup <- function(peakTable, meta, sampleGroup, select) {
     whichIncl <- grep(select, sampleGroup)

@@ -1,6 +1,7 @@
 #' Prepare a QC object for drift correction
 #'
-#' @param peakTable Peak table (without missing values). Samples in rows; Features in columns; colnames as mz@rt
+#' @param peakTable Peak table (without missing values). Samples in rows; 
+#' Features in columns; colnames as mz@rt
 #' @param inj Injection sequence number for QC samples
 #'
 #' @return QC object
