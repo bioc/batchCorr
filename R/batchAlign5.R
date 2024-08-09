@@ -1,12 +1,17 @@
 #' BA: Aggregate presense/missingness per batch
 #'
-#' batchFlag will aggregate presentness/missingness per feature at batch level within the combination: batch x sample type
+#' batchFlag aggregates presentness/missingness per feature in batches within 
+#' the combination: batch x sample type
 #'
-#' @param PTnofill a peaktable with missing values (ie without either hard filling or imputation)
+#' @param PTnofill a peaktable with missing values 
+#' (ie without either hard filling or imputation)
 #' @param peakInfo a matrix with m/z (col1) and rt (col2) of features (rows)
-#' @param NAhard proportion of NAs within batch for feature to be considered missing
-#' @param batch vector (length = nSamples) containing batch information (e.g. A, B, C)
-#' @param sampleGroup vector (length = nSamples) containing sample group information (e.g. QC, Sample, Reference)
+#' @param NAhard proportion of NAs within batch for feature to be 
+#' considered missing
+#' @param batch vector (length = nSamples) containing batch information 
+#' (e.g. A, B, C)
+#' @param sampleGroup vector (length = nSamples) containing sample group 
+#' information (e.g. QC, Sample, Reference)
 #'
 #' @return meta: metadata aggretated by batch x sample type
 #' @return flagHard: a table of presentness/missingness per batch x sample type
@@ -14,10 +19,10 @@
 #' @return rt: rt values of the features
 #' @noRd
 batchFlag <- function(PTnofill,
-                      batch,
-                      sampleGroup,
-                      peakInfo,
-                      NAhard) {
+                        batch,
+                        sampleGroup,
+                        peakInfo,
+                        NAhard) {
     uniqBatch <- unique(batch)
     uniqGrp <- unique(sampleGroup)
     n <- length(uniqBatch) * length(uniqGrp)
@@ -47,7 +52,8 @@ batchFlag <- function(PTnofill,
 
 #' BA: Find alignment candidates
 #'
-#' align will find candidates for alignment among features that have systematic missingness "within box" of maximum m/z & rt differences. Used internally.
+#' align will find candidates for alignment among features that have systematic 
+#' missingness "within box" of maximum m/z & rt differences. Used internally.
 #' @param flags a table of presentness/missingness per batch x sample type
 #' @param mz m/z values of the features
 #' @param rt rt values of the features
@@ -58,7 +64,8 @@ batchFlag <- function(PTnofill,
 #' @return clusters: groups of features linked through mutual events
 #' @noRd
 align <- function(flags, mz, rt, mzdiff, rtdiff) {
-    misIndex <- which(colSums(flags) != nrow(flags) & colSums(flags) != 0) # Take out misalignment candidates
+    # Take out misalignment candidates
+    misIndex <- which(colSums(flags) != nrow(flags) & colSums(flags) != 0)
     event <- list()
     c <- 0
     for (i in seq_len(length(misIndex) - 1)) {
@@ -70,7 +77,8 @@ align <- function(flags, mz, rt, mzdiff, rtdiff) {
         rtPlus <- rt[misPlus]
         mzPlus <- mz[misPlus]
         # Which are in the mz*rt box?
-        inBox <- which(abs(rtPlus - rt[m]) < rtdiff & abs(mzPlus - mz[m]) < mzdiff)
+        inBox <- which(abs(rtPlus - rt[m]) < rtdiff &
+                            abs(mzPlus - mz[m]) < mzdiff)
 
         if (length(inBox) > 0) {
             for (j in seq_along(inBox)) {
@@ -136,7 +144,9 @@ align <- function(flags, mz, rt, mzdiff, rtdiff) {
         }
     }
     # Add flag for combination of features
-    features[features$featureIndex %in% duplN, 6] <- features[features$featureIndex %in% duplN, 6] + 1
+    features[features$featureIndex %in% duplN, 6] <-
+        features[features$featureIndex %in% duplN, 6] + 1
+    
     ## cluster together common m&n's
     for (j in duplMN) {
         clu <- unique(features[features$featureIndex %in% j, 1])
@@ -145,7 +155,9 @@ align <- function(flags, mz, rt, mzdiff, rtdiff) {
         }
     }
     # Add flag for combination of features
-    features[features$featureIndex %in% duplMN, 5] <- features[features$featureIndex %in% duplMN, 5] + 1
+    features[features$featureIndex %in% duplMN, 5] <-
+        features[features$featureIndex %in% duplMN, 5] + 1
+    
     features <- features[!duplicated(features$featureIndex), ]
     features$cluster <- as.numeric(as.factor(features$cluster))
     clusters <- clusterMatrix(features)
@@ -161,7 +173,10 @@ align <- function(flags, mz, rt, mzdiff, rtdiff) {
 #' @noRd
 clusterMatrix <- function(features) {
     nClust <- length(unique(features$cluster))
-    clustMat <- matrix(nrow = nClust, ncol = 3 + length(grep("bF", colnames(features))))
+    clustMat <- 
+        matrix(nrow = nClust, ncol = 3 + 
+                length(grep("bF", colnames(features))))
+    
     colnames(clustMat) <- c(
         "cluster", "nFeat", "dotProd",
         paste("bF", seq_along(grep("bF", colnames(features))), sep = "")
@@ -170,8 +185,11 @@ clusterMatrix <- function(features) {
         clustSub <- features[features$cluster == c, ]
         vectMult <- as.numeric(clustSub[1, grep("bF", colnames(features))])
         for (f in 2:nrow(clustSub)) {
-            dotProd <- sum(vectMult * clustSub[f, grep("bF", colnames(features))])
-            vectMult <- vectMult + as.numeric(clustSub[f, grep("bF", colnames(features))])
+            dotProd <- sum(vectMult *
+                            clustSub[f, grep("bF", colnames(features))])
+            
+            vectMult <- vectMult +
+                as.numeric(clustSub[f, grep("bF", colnames(features))])
         }
         clustMat[c, ] <- c(c, nrow(clustSub), dotProd, vectMult)
     }
@@ -180,8 +198,11 @@ clusterMatrix <- function(features) {
 
 #' BA: Split overcrowded clusters into subclusters
 #'
-#' clustSplit will split clusters by iteratively removing maximum distances until "single possible candidates" are identified. The function works recursively of severely overcrowded clusters. Used internally.
-#' @param clustFlags a table of presentness/missingness per batch x sample type for the features within cluster
+#' clustSplit will split clusters by iteratively removing maximum distances 
+#' until "single possible candidates" are identified. The function works 
+#' recursively of severely overcrowded clusters. Used internally.
+#' @param clustFlags a table of presentness/missingness per batch x sample 
+#' type for the features within cluster
 #' @param mz m/z values of the features
 #' @param rt rt values of the features
 #' @return A vector with subcluster identifiers
@@ -192,7 +213,9 @@ clustSplit <- function(clustFlags, mz, rt) {
     dotFlag <- matrix(0, ncol = ncol(clustFlags), nrow = ncol(clustFlags))
     for (i in seq_len(ncol(clustFlags))) {
         for (j in seq_len(ncol(clustFlags))) {
-            dotFlag[i, j] <- ifelse(sum(clustFlags[, i] * clustFlags[, j]) == 0, 1, 0)
+            dotFlag[i, j] <- ifelse(sum(clustFlags[, i] *
+                                            clustFlags[, j]) == 0, 1, 0)
+            
         }
     }
     rtDist <- as.matrix(dist(rt, diag = TRUE, upper = TRUE))
@@ -245,9 +268,12 @@ clustSplit <- function(clustFlags, mz, rt) {
 
 #' BA: Plot the identified clusters
 #'
-#' plotClust will plot clusters identified based on sample type. Used internally.
-#' @param batchflag a table of presentness/missingness per batch x sample type for the features within cluster
-#' @param grpFlag a vector corresponding to the rows of batchFlag used for sample type
+#' plotClust will plot clusters identified based on sample type. Used 
+#' internally.
+#' @param batchflag a table of presentness/missingness per batch x sample 
+#' type for the features within cluster
+#' @param grpFlag a vector corresponding to the rows of batchFlag used for 
+#' sample type
 #' @param cluster extracted cluster to be plotted
 #' @param text cluster identifier
 #' @param color vector with colors
@@ -256,12 +282,12 @@ clustSplit <- function(clustFlags, mz, rt) {
 #' @importFrom graphics points
 #' @noRd
 plotClust <- function(batchflag,
-                      grpFlag,
-                      cluster,
-                      text,
-                      color = 2,
-                      mzwidth = 0.02,
-                      rtwidth = 100) {
+                        grpFlag,
+                        cluster,
+                        text,
+                        color = 2,
+                        mzwidth = 0.02,
+                        rtwidth = 100) {
     bF <- batchflag
     mzspan <- c(mean(cluster$mz) - mzwidth / 2, mean(cluster$mz) + mzwidth / 2)
     rtspan <- c(mean(cluster$rt) - rtwidth / 2, mean(cluster$rt) + rtwidth / 2)
@@ -323,12 +349,15 @@ plotClust <- function(batchflag,
 
 #' BA: Find alignment candidates
 #'
-#' alignIndex will find features systematically misaligned between batches using "sample type" information.
-#' @param batchflag a table of presentness/missingness per batch x sample type for the features within cluster
+#' alignIndex will find features systematically misaligned between batches 
+#' using "sample type" information.
+#' @param batchflag a table of presentness/missingness per batch x 
+#' sample type for the features within cluster
 #' @param grpType sample type to be used to find batch alignments
 #' @param mzdiff maximum distance in m/z to be considered for alignment
 #' @param rtdiff maximum distance in rt to be considered for alignment
-#' @param report boolean for plotting results of owercrowded cluster splitting for visual examination
+#' @param report boolean for plotting results of owercrowded cluster 
+#' splitting for visual examination
 #' @param reportName string with name of report file
 #' @return An object (list) consisting of the following features:
 #' @return grpType: sample type used to find batch alignments
@@ -341,12 +370,12 @@ plotClust <- function(batchflag,
 #' @importFrom grDevices dev.off pdf
 #' @noRd
 alignIndex <- function(batchflag,
-                       grpType,
-                       mzdiff,
-                       rtdiff,
-                       report,
-                       reportName = "cluster_splits",
-                       reportPath) {
+                        grpType,
+                        mzdiff,
+                        rtdiff,
+                        report,
+                        reportName = "cluster_splits",
+                        reportPath) {
     bF <- batchflag
     if (!grpType %in% bF$meta[, "sampleGroup"]) {
         stop("Group ", grpType, " not in metadata.")
@@ -359,8 +388,8 @@ alignIndex <- function(batchflag,
     a1Clust <- a1$clusters
     if (is.null(a1Clust)) {
         stop("There are no alignment candidates.
-           Therefore, between-batch alignment is not possible.
-           Consider expanding mzdiff and/or rtdiff.")
+        Therefore, between-batch alignment is not possible.
+        Consider expanding mzdiff and/or rtdiff.")
     }
     splits <- which(a1Clust$dotProd != 0)
     if (report) pdf(file = paste(reportPath, reportName, ".pdf", sep = ""))
@@ -373,14 +402,24 @@ alignIndex <- function(batchflag,
         alignSplit <- clustSplit(flagSp, mzSp, rtSp)
         text <- paste("Original cluster", s)
         if (report) {
-            plotClust(bF, bF$meta[, 2] == grpType, cluster, text = text, color = alignSplit + 1)
+            plotClust(bF,
+                        bF$meta[, 2] == grpType,
+                        cluster,
+                        text = text,
+                        color = alignSplit + 1)
         }
-        newClust <- ifelse(alignSplit == 1, s, max(a2$features$cluster) + alignSplit - 1)
+        newClust <- ifelse(alignSplit == 1,
+                            s,
+                            max(a2$features$cluster) + alignSplit - 1)
+        
         a2$features$cluster[a2$features$cluster == s] <- newClust
     }
     if (report) dev.off()
     ### Remove duplicates
-    a2$features <- a2$features[a2$features$cluster %in% unique(a2$features$cluster[duplicated(a2$features$cluster)]), ]
+    a2$features <-
+        a2$features[a2$features$cluster %in% 
+                unique(a2$features$cluster[duplicated(a2$features$cluster)]), ]
+    
     a2$features <- a2$features[order(a2$features$cluster), ]
     a2$features$cluster <- as.numeric(as.factor(a2$features$cluster))
     a2$clusters <- clusterMatrix(a2$features)
@@ -408,19 +447,21 @@ alignIndex <- function(batchflag,
 #' BA: Plot clusters of aligned features
 #'
 #' plotAlign will plot clusters of aligned features
-#' @param batchflag a table of presentness/missingness per batch x sample type for the features within cluster
+#' @param batchflag a table of presentness/missingness per batch x sample 
+#' type for the features within cluster
 #' @param alignindex An object (list) consisting of alignment information
 #' @param clust which cluster(s) to plot. If missing, plots all clusters.
-#' @param plotType whether to plot to list ("plot") or to pdf ("pdf") Default: "plot"
+#' @param plotType whether to plot to list ("plot") or to pdf ("pdf") 
+#' Default: "plot"
 #' @param reportName name of plotfile
 #' @param mzwidth plot span of m/z
 #' @param rtwidth plot span of rt
 #' @noRd
 plotAlign <- function(batchflag,
-                      alignindex,
-                      clust,
-                      reportName = "aligned_clusters",
-                      reportPath) {
+                        alignindex,
+                        clust,
+                        reportName = "aligned_clusters",
+                        reportPath) {
     aI <- alignindex
     bF <- batchflag
     pdf(file = paste(reportPath, reportName, ".pdf", sep = ""))
@@ -456,26 +497,37 @@ plotAlign <- function(batchflag,
 
 #' BA: Alignment of peaktable based on alignIndex and batchFlag data
 #'
-#' batchAlign will use the 'batchFlag' and 'alignIndex' information to align sample peaks that are systematically misaligned across batches.
+#' batchAlign will use the 'batchFlag' and 'alignIndex' information to align 
+#' sample peaks that are systematically misaligned across batches.
 #'
-#' @param batchflag a table of presentness/missingness per batch x sample type for the features within cluster
+#' @param batchflag a table of presentness/missingness per batch x sample type 
+#' for the features within cluster
 #' @param alignindex An object (list) consisting of alignment information
-#' @param peaktable_filled a peaktable without missing values (ie after hard filling or imputation)
-#' @param batch vector (length = nSamples from peaktable_filled) containing batch information (e.g. A, B, C)
+#' @param peaktable_filled a peaktable without missing values 
+#' (ie after hard filling or imputation)
+#' @param batch vector (length = nSamples from peaktable_filled) 
+#' containing batch information (e.g. A, B, C)
 #'
 #' @return An object (list) consisting of the following features:
 #' @return PTalign: A peaktable with batch aligned peak areas
-#' @return boolAveragedAlign: boolean vector of features where alignment has been made using feature averaging (i.e. where batches are missing within features). Length: same as final number of features
+#' @return boolAveragedAlign: boolean vector of features where alignment has 
+#' been made using feature averaging 
+#' (i.e. where batches are missing within features). 
+#' Length: same as final number of features
 #' @return PTfill: peaktable without missing values (indata)
-#' @return boolKeep: boolean vector of features kept after alignment (the rest of the combined features are deleted)
-#' @return boolAveragedFill: boolean vector of features where alignment has been made using feature averaging (i.e. where batches are missing within features). Length: same as orgiginal number of features
+#' @return boolKeep: boolean vector of features kept after alignment 
+#' (the rest of the combined features are deleted)
+#' @return boolAveragedFill: boolean vector of features where alignment has been
+#'  made using feature averaging 
+#'  (i.e. where batches are missing within features). 
+#'  Length: same as orgiginal number of features
 #' @return aI: alignIndex object (indata)
 #' @importFrom stats aggregate
 #' @noRd
 batchAlign <- function(batchflag,
-                       alignindex,
-                       peaktable_filled,
-                       batch) {
+                        alignindex,
+                        peaktable_filled,
+                        batch) {
     bF <- batchflag
     flags <- bF$flagHard
     batchFlags <- as.matrix(aggregate(flags, list(bF$meta[, 1]), "sum")[, -1])
@@ -497,7 +549,8 @@ batchAlign <- function(batchflag,
             subBatchVect <- batchFlags[, feats]
             batchVectAdd <- subBatchVect[, 1]
             subFeats <- PTfill[, feats]
-            aveFeat <- rowSums(t(colSums(subVect) * t(subFeats))) / sum(subVect)
+            aveFeat <- 
+                rowSums(t(colSums(subVect) * t(subFeats))) / sum(subVect)
             for (f2 in 2:length(feats)) {
                 vect2 <- subVect[, f2]
                 dotProd <- sum(vectAdd * vect2, na.rm = TRUE)
@@ -512,7 +565,8 @@ batchAlign <- function(batchflag,
                     bFlag <- which(batchFlags[, f] > 0)
                     for (bFl in bFlag) {
                         batchID <- uniqBatch[bFl]
-                        boolFeat <- boolFeat | ifelse(batch == batchID, TRUE, FALSE)
+                        boolFeat <- 
+                            boolFeat | ifelse(batch == batchID, TRUE, FALSE)
                     }
                     newFeat[boolFeat] <- PTfill[boolFeat, f]
                 }
@@ -523,7 +577,8 @@ batchAlign <- function(batchflag,
                     boolFeat <- rep(FALSE, nrow(PTfill))
                     for (z in zeros) {
                         batchID <- uniqBatch[z]
-                        boolFeat <- boolFeat | ifelse(batch == batchID, TRUE, FALSE)
+                        boolFeat <- 
+                            boolFeat | ifelse(batch == batchID, TRUE, FALSE)
                     }
                     newFeat[boolFeat] <- aveFeat[boolFeat]
                 }

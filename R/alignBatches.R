@@ -1,15 +1,19 @@
-#' Perform multi-batch alignment to merge features artificially split between batches
+#' Multi-batch alignment merging features artificially split between batches
 #'
 #' @param peakInfo matrix with mz and rt in columns 1:2 (see e.g. ?peakInfo)
 #' @param PeakTabNoFill Multi-batch peak table including missing values
 #' @param PeakTabFilled Multi-batch peak table without missing values
 #' @param batches Vector (length=nrow(PeakTab)) of batch identifiers
-#' @param sampleGroups Vector (length=nrow(PeakTab)) of sample type (e.g. "sample", "QC", "Ref)
-#' @param selectGroup Which sample type to base alignment on (e.g. "sample", "QC" or "Ref")
-#' @param NAhard proportion of NAs within batch for feature to be considered missing
+#' @param sampleGroups Vector (length=nrow(PeakTab)) of sample type
+#' (e.g. "sample", "QC", "Ref)
+#' @param selectGroup Which sample type to base alignment on 
+#' (e.g. "sample", "QC" or "Ref")
+#' @param NAhard proportion of NAs within batch for feature to be 
+#' considered missing
 #' @param mzdiff Tolerance for difference in m/z
 #' @param rtdiff Tolerance for difference in retention time
-#' @param report Whether to export diagnostic plots into your work directory (defaults to TRUE)
+#' @param report Whether to export diagnostic plots into your work 
+#' directory (defaults to TRUE)
 #' @param reportPath directory path for report
 #'
 #' @return batchAlign Object
@@ -38,16 +42,16 @@
 #' setwd(.old_wd)
 #' }
 alignBatches <- function(peakInfo,
-                         PeakTabNoFill,
-                         PeakTabFilled,
-                         batches,
-                         sampleGroups,
-                         selectGroup = "QC",
-                         NAhard = 0.8,
-                         mzdiff = 0.002,
-                         rtdiff = 15,
-                         report = TRUE,
-                         reportPath = NULL) {
+                        PeakTabNoFill,
+                        PeakTabFilled,
+                        batches,
+                        sampleGroups,
+                        selectGroup = "QC",
+                        NAhard = 0.8,
+                        mzdiff = 0.002,
+                        rtdiff = 15,
+                        report = TRUE,
+                        reportPath = NULL) {
     if (report & is.null(reportPath)) {
         stop("Argument 'reportPath' is missing")
     }
@@ -62,7 +66,7 @@ alignBatches <- function(peakInfo,
     }
     if (report & !is.null(reportPath)) {
         if (!endsWith(reportPath, "/")) {
-            message("Adding a slash to file path to allow proper folder structure")
+            message("Adding slash to path to allow proper folder structure")
             reportPath <- paste0(reportPath, "/")
         }
         if (!file.exists(reportPath)) {

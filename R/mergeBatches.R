@@ -1,9 +1,13 @@
 #' Merge batches after drift correction
 #'
 #' The output of the within-batch drift correction is a correction object.
-#' This function merges peak tables from several batches by extracting information from the correction objects.
-#' The user must specify a minimum proportion of qualified batches per feature, i.e. such batches where the QC CV is < the specified limit.
-#' There is thus a risk that features with poor quality (in certain batches) are present, but the features are present in high quality in sufficient proportion of batches to anyway warrant inclusion.
+#' This function merges peak tables from several batches by extracting 
+#' information from the correction objects.
+#' The user must specify a minimum proportion of qualified batches per feature, 
+#' i.e. such batches where the QC CV is < the specified limit.
+#' There is thus a risk that features with poor quality (in certain batches) are
+#'  present, but the features are present in high quality in sufficient 
+#'  proportion of batches to anyway warrant inclusion.
 #' @param batchList A list of correction objects (after drift correction)
 #' @param qualRatio Proportion of
 #'
@@ -17,7 +21,8 @@
 #'
 #' @export
 mergeBatches <- function(batchList, qualRatio = 0.5) {
-    # Determining number of batches and batch-ratio needed to surpass to keep a feature
+    # Determining number of batches and batch-ratio needed
+    # to surpass to keep a feature
     nBatch <- length(batchList)
     nQual <- ceiling(qualRatio * nBatch)
     # If no batchnames supplied in batchList names batches from 1-nBatches
@@ -47,7 +52,9 @@ mergeBatches <- function(batchList, qualRatio = 0.5) {
     peakTablesOrg <- do.call(rbind, peakTablesOrg)
     peakTablesOrg <- peakTablesOrg[, colnames(peakTablesOrg) %in% qualFeatures]
     peakTablesCorr <- do.call(rbind, peakTablesCorr)
-    peakTablesCorr <- peakTablesCorr[, colnames(peakTablesCorr) %in% qualFeatures]
+    peakTablesCorr <- peakTablesCorr[, colnames(peakTablesCorr) %in%
+                                            qualFeatures]
+    
     return(list(
         peakTableOrg = peakTablesOrg,
         peakTableCorr = peakTablesCorr,
