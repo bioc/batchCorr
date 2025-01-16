@@ -150,9 +150,8 @@ The assay is added to the SummarizedExperiment supplied to `PeakTabFilled`.
 
 ```{r}
 se <- alignBatches(PeakTabNoFill = se, PeakTabFilled = se, batches = "batch",
-                   sampleGroups = "grp", report = FALSE,
-                   assay.type1 = "nofill", assay.type2 = "fill", 
-                   name = "aligned", rt_col = "rt", mz_col = "mz")
+    sampleGroups = "grp", report = FALSE, assay.type1 = "nofill",
+    assay.type2 = "fill", name = "aligned", rt_col = "rt", mz_col = "mz")
 ```
 
 ## Within-batch drift correction
@@ -233,7 +232,7 @@ indicators.
 ```{r}
 batch_labels <- unique(colData(se)$batch)
 batches <- lapply(batch_labels, function(batch_label) {
-  se[, colData(se)$batch == batch_label]
+    se[, colData(se)$batch == batch_label]
 })
 
 batches <- lapply(batches, correctDrift, injections = "inj", 

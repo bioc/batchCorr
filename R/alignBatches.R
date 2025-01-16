@@ -2,13 +2,13 @@
 #'
 #' Multi-batch alignment of features artificially split between batches.
 #' 
-#' A basic method with matrices and SummarizedExperiment is supported. For 
-#' grouping variables such as batches, the basic method expects vectors, while 
-#' the SummarizedExperiment method expects the names of the respective columns 
-#' in PeakTabFilled. The basic method returns a list with the aligned peak 
-#' table and information about the process, whereas the SummarizedExperiment 
-#' method assigns the aligned peak table to the object supplied to 
-#' PeakTabFilled. 
+#' A basic method with matrices (samples as rows) and SummarizedExperiment is 
+#' supported. For grouping variables such as batches, the basic method expects 
+#' vectors, while the SummarizedExperiment method expects the names of the 
+#' respective columns in PeakTabFilled. The basic method returns a list with 
+#' the aligned peak table and information about the process, whereas the 
+#' SummarizedExperiment method assigns the aligned peak table to the object 
+#' supplied to PeakTabFilled. 
 #' 
 #' @param peakInfo matrix with mz and rt in columns 1:2 (see e.g. ?peakInfo)
 #' @param PeakTabNoFill SummarizedExperiment object or matrix before gap-filling
@@ -32,7 +32,7 @@
 #' multiple assays
 #' @param mz_col character scalar, name of column containing mass information
 #' @param rt_col character scalar, name of column for retention time
-#' @param ... optional arguments not used
+#' @param ... parameters with same behavior across methods
 #'
 #' @return a SummarizedExperiment object as PeakTabFill with the the aligned 
 #' matrix or a list of six:
@@ -83,18 +83,12 @@
 #' setwd(.old_wd)
 #' }
 #' @name alignBatches
+NULL
 
-.alignBatches <- function(peakInfo,
-                          PeakTabNoFill,
-                          PeakTabFilled,
-                          batches,
-                          sampleGroups,
-                          selectGroup = "QC",
-                          NAhard = 0.8,
-                          mzdiff = 0.002,
-                          rtdiff = 15,
-                          report = TRUE,
-                          reportPath = NULL) {
+.alignBatches <- function(peakInfo, PeakTabNoFill, PeakTabFilled, batches, 
+    sampleGroups, selectGroup = "QC", NAhard = 0.8, mzdiff = 0.002, rtdiff = 15,
+    report = TRUE, reportPath = NULL) {
+
     if (report & is.null(reportPath)) {
         stop("Argument 'reportPath' is missing")
     }
@@ -157,34 +151,33 @@ setMethod("alignBatches", signature = c("ANY", "ANY"), .alignBatches)
 #' @rdname alignBatches
 #' @export
 setMethod("alignBatches", 
-    signature = c(PeakTabNoFill = "SummarizedExperiment", 
-                  PeakTabFilled = "SummarizedExperiment"),
+    signature = c("SummarizedExperiment", "SummarizedExperiment"),
     function(PeakTabNoFill, PeakTabFilled, batches, sampleGroups, 
-             assay.type1 = NULL, assay.type2 = NULL, name = NULL, 
-             mz_col = "mz", rt_col = "rt", ...) {
+        assay.type1 = NULL, assay.type2 = NULL, name = NULL, 
+        mz_col = "mz", rt_col = "rt", ...) {
 
     from_NoFill <- .get_from_name(PeakTabNoFill, assay.type1)
     # Process name for filled object as it is returned
     from_to_Fill <- .get_from_to_names(PeakTabFilled, assay.type2, name)
-  
+
     .check_sample_col_present(PeakTabNoFill, list(batches, sampleGroups))
     .check_feature_col_present(PeakTabFilled, list(mz_col, rt_col))
 
     peakIn <- as.matrix(rowData(PeakTabFilled)[, c(mz_col, rt_col)])
-  
+
     aligned <- alignBatches(peakInfo = peakIn, 
         PeakTabNoFill = t(assay(PeakTabNoFill, from_NoFill)),
         PeakTabFilled = t(assay(PeakTabFilled, from_to_Fill[[1]])),
         batches = colData(PeakTabNoFill)[[batches]],
         sampleGroups = colData(PeakTabFilled)[[sampleGroups]],
         ...)
-  
+
     aligned_mat <- t(aligned$PTalign)
-  
+
     # Filter object to accept assay of aligned features
-    PeakTabFilled <- PeakTabFilled[which(rownames(PeakTabFilled) %in% 
-                                 rownames(aligned_mat)), ]
+    PeakTabFilled <- PeakTabFilled[
+        which(rownames(PeakTabFilled) %in% rownames(aligned_mat)), ]
     assay(PeakTabFilled, from_to_Fill[[2]]) <- aligned_mat
-  
+
     PeakTabFilled
 })

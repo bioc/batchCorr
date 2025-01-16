@@ -2,26 +2,10 @@
 % Please edit documentation in R/correctDrift.R
 \name{correctDrift}
 \alias{correctDrift}
-\alias{.correctDrift}
 \alias{correctDrift,ANY-method}
 \alias{correctDrift,SummarizedExperiment-method}
 \title{Within-batch signal intensity drift correction}
 \usage{
-.correctDrift(
-  peakTable,
-  injections,
-  sampleGroups,
-  QCID = "QC",
-  RefID = "none",
-  modelNames = c("VVV", "VVE", "VEV", "VEE", "VEI", "VVI", "VII"),
-  G = seq(5, 35, by = 10),
-  smoothFunc = "spline",
-  spar = 0.2,
-  CVlimit = 0.3,
-  report = TRUE,
-  reportPath = NULL
-)
-
 \S4method{correctDrift}{ANY}(
   peakTable,
   injections,
@@ -73,7 +57,7 @@ assays}
 \item{name}{character scalar, name of the resultant assay in case of multiple
 assays}
 
-\item{...}{optional arguments (not used)}
+\item{...}{parameters with same behavior across methods}
 }
 \value{
 A SummarizedExperiment object with the corrected matrix or a list, 
@@ -89,12 +73,13 @@ including the corrected matrix and processing information:
 Correct drift with cluster-based drift correction.
 }
 \details{
-A basic method for matrix and SummarizedExperiment is supported. For 
-grouping variables such as sampleGroups, the basic method expects vectors, 
-while the SummarizedExperiment method expects the names of the respective 
-columns. The basic method returns a list with the corrected peak table and 
-information about the process, whereas the SummarizedExperiment method 
-assigns the corrected peak table to the object supplied.
+A basic method for matrix (samples as rows) and SummarizedExperiment is 
+supported. For grouping variables such as sampleGroups, the basic method 
+expects vectors, while the SummarizedExperiment method expects the names of 
+the respective columns. The basic method returns a list with the corrected 
+peak table and information about the process, whereas the 
+SummarizedExperiment method assigns the corrected peak table to the object 
+supplied.
 }
 \examples{
 \dontshow{

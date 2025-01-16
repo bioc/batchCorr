@@ -2,12 +2,13 @@
 #'
 #' Correct drift with cluster-based drift correction. 
 #'
-#' A basic method for matrix and SummarizedExperiment is supported. For 
-#' grouping variables such as sampleGroups, the basic method expects vectors, 
-#' while the SummarizedExperiment method expects the names of the respective 
-#' columns. The basic method returns a list with the corrected peak table and 
-#' information about the process, whereas the SummarizedExperiment method 
-#' assigns the corrected peak table to the object supplied. 
+#' A basic method for matrix (samples as rows) and SummarizedExperiment is 
+#' supported. For grouping variables such as sampleGroups, the basic method 
+#' expects vectors, while the SummarizedExperiment method expects the names of 
+#' the respective columns. The basic method returns a list with the corrected 
+#' peak table and information about the process, whereas the 
+#' SummarizedExperiment method assigns the corrected peak table to the object 
+#' supplied. 
 #'
 #' @param peakTable SummarizedExperiment object or matrix
 #' @param injections character scalar or numeric, injection order
@@ -28,7 +29,7 @@
 #' assays
 #' @param name character scalar, name of the resultant assay in case of multiple
 #' assays
-#' @param ... optional arguments (not used)
+#' @param ... parameters with same behavior across methods
 #'
 #' @return A SummarizedExperiment object with the corrected matrix or a list, 
 #' including the corrected matrix and processing information:
@@ -84,6 +85,7 @@
 #' setwd(.old_wd)
 #' }
 #' @name correctDrift
+NULL
 
 .correctDrift <- function(peakTable,
                             injections,
@@ -194,7 +196,7 @@
 }
 
 setGeneric("correctDrift", signature = c("peakTable"),
-  function(peakTable, ...) standardGeneric("correctDrift"))
+    function(peakTable, ...) standardGeneric("correctDrift"))
 
 #' @export
 #' @rdname correctDrift
@@ -203,11 +205,11 @@ setMethod("correctDrift", signature = c("ANY"), .correctDrift)
 #' @export
 #' @rdname correctDrift
 setMethod("correctDrift", signature = c("SummarizedExperiment"),
-          function(peakTable, injections, sampleGroups, assay.type, name, ...) {
+    function(peakTable, injections, sampleGroups, assay.type, name, ...) {
     from_to <- .get_from_to_names(peakTable, assay.type, name)
-  
+
     .check_sample_col_present(peakTable, list(injections, sampleGroups))
-  
+
     # Get corrected peak table and processing metadata
     corrected <- correctDrift(t(assay(peakTable, from_to[[1]])), 
         injections = colData(peakTable)[[injections]],
@@ -216,12 +218,12 @@ setMethod("correctDrift", signature = c("SummarizedExperiment"),
     corrected_mat <- t(corrected$TestFeatsFinal)
     # Filter peak table by features in corrected peak table, where features
     # with CV < CVlimit are retained
-    peakTable <- peakTable[which(rownames(peakTable) %in% 
-                         rownames(corrected_mat)), ]
-                         
+    peakTable <- peakTable[
+        which(rownames(peakTable) %in% rownames(corrected_mat)), ]
+
     # Include corrected peak table in object
     assay(peakTable, from_to[[2]]) <- corrected_mat
-      
+
     peakTable
 })
 
