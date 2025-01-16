@@ -48,7 +48,7 @@ assays}
 \item{name}{character scalar, name of the resultant assay in case of 
 multiple assays}
 
-\item{...}{optional arguments (not used)}
+\item{...}{parameters with same behavior across methods}
 }
 \value{
 An list object containing:
@@ -65,12 +65,13 @@ Batches are feature-wise normalised by Ref samples if passing heuristic
 criteria (CV and fold change). Otherwise normalized by population median.
 }
 \details{
-A basic method for matrices and SummarizedExperiment is supported. For 
-grouping variables such as sampleGroup, the basic method expects vectors, 
-while the SummarizedExperiment method expects the names of the respective 
-columns. The basic method returns a list with the normalized peak table and 
-information about the process, whereas the SummarizedExperiment method 
-assigns the normalized peak table to the object supplied.
+A basic method for matrix (samples as rows) and SummarizedExperiment is 
+supported. For grouping variables such as sampleGroup, the basic method 
+expects vectors, while the SummarizedExperiment method expects the names of 
+the respective columns. The basic method returns a list with the normalized 
+peak table and information about the process, whereas the 
+SummarizedExperiment method assigns the normalized peak table to the object 
+supplied.
 }
 \examples{
 # Note that the example data does not include any biological samples

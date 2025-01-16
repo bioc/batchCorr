@@ -3,12 +3,13 @@
 #' Batches are feature-wise normalised by Ref samples if passing heuristic 
 #' criteria (CV and fold change). Otherwise normalized by population median.
 #'
-#' A basic method for matrix and SummarizedExperiment is supported. For 
-#' grouping variables such as sampleGroup, the basic method expects vectors, 
-#' while the SummarizedExperiment method expects the names of the respective 
-#' columns. The basic method returns a list with the normalized peak table and 
-#' information about the process, whereas the SummarizedExperiment method 
-#' assigns the normalized peak table to the object supplied. 
+#' A basic method for matrix (samples as rows) and SummarizedExperiment is 
+#' supported. For grouping variables such as sampleGroup, the basic method 
+#' expects vectors, while the SummarizedExperiment method expects the names of 
+#' the respective columns. The basic method returns a list with the normalized 
+#' peak table and information about the process, whereas the 
+#' SummarizedExperiment method assigns the normalized peak table to the object 
+#' supplied. 
 #' 
 #' @param peakTableCorr SummarizedExperiment object or matrix
 #' @param batches character scalar or factor, batch labels
@@ -28,7 +29,7 @@
 #' assays
 #' @param name character scalar, name of the resultant assay in case of 
 #' multiple assays
-#' @param ... optional arguments (not used)
+#' @param ... parameters with same behavior across methods
 #'
 #' @return An list object containing:
 #' A SummarizedExperiment object with the normalized peak table or a list, 
@@ -68,14 +69,9 @@
 #' @name normalizeBatches
 NULL
 
-.normalizeBatches <- function(peakTableCorr,
-                              batches,
-                              sampleGroup,
-                              refGroup = "QC",
-                              population = "all",
-                              CVlimit = 0.3,
-                              FCLimit = 5,
-                              medianZero = c("mean", "min")) {
+.normalizeBatches <- function(peakTableCorr, batches, sampleGroup,
+    refGroup = "QC", population = "all", CVlimit = 0.3, FCLimit = 5,
+    medianZero = c("mean", "min")) {
     # Basic sanity checks and setting defaults
     # Setting defaults
     peakTableOrg <- peakTableCorr
@@ -278,9 +274,8 @@ NULL
 }
 
 setGeneric("normalizeBatches", signature = c("peakTableCorr"),
-           function(peakTableCorr, ...) {
-    standardGeneric("normalizeBatches")
-})
+    function(peakTableCorr, ...) standardGeneric("normalizeBatches")
+)
 
 #' @export
 #' @rdname normalizeBatches
@@ -289,20 +284,19 @@ setMethod("normalizeBatches", signature = c("ANY"), .normalizeBatches)
 #' @export
 #' @rdname normalizeBatches
 setMethod("normalizeBatches", signature = c("SummarizedExperiment"),
-          function(peakTableCorr, batches, sampleGroup,
-                   assay.type, name, ...) {
+    function(peakTableCorr, batches, sampleGroup, assay.type, name, ...) {
     from_toCorr <- .get_from_to_names(peakTableCorr, assay.type, name)
-    
+
     .check_sample_col_present(peakTableCorr, list(batches, sampleGroup))
-    
+
     normalized <- normalizeBatches(
         t(assay(peakTableCorr, from_toCorr[[1]])),
         batches = colData(peakTableCorr)[[batches]],
         sampleGroup = colData(peakTableCorr)[[sampleGroup]],
         ...)
-      
+
     assay(peakTableCorr, from_toCorr[[2]]) <- t(normalized$peakTable)
-    
+
     peakTableCorr
 })
 

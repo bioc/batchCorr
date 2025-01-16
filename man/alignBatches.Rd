@@ -2,25 +2,10 @@
 % Please edit documentation in R/alignBatches.R
 \name{alignBatches}
 \alias{alignBatches}
-\alias{.alignBatches}
 \alias{alignBatches,ANY,ANY-method}
 \alias{alignBatches,SummarizedExperiment,SummarizedExperiment-method}
 \title{Between-batch alignment of features}
 \usage{
-.alignBatches(
-  peakInfo,
-  PeakTabNoFill,
-  PeakTabFilled,
-  batches,
-  sampleGroups,
-  selectGroup = "QC",
-  NAhard = 0.8,
-  mzdiff = 0.002,
-  rtdiff = 15,
-  report = TRUE,
-  reportPath = NULL
-)
-
 \S4method{alignBatches}{ANY,ANY}(
   peakInfo,
   PeakTabNoFill,
@@ -87,7 +72,7 @@ multiple assays}
 
 \item{rt_col}{character scalar, name of column for retention time}
 
-\item{...}{optional arguments not used}
+\item{...}{parameters with same behavior across methods}
 }
 \value{
 a SummarizedExperiment object as PeakTabFill with the the aligned 
@@ -107,13 +92,13 @@ matrix or a list of six:
 Multi-batch alignment of features artificially split between batches.
 }
 \details{
-A basic method with matrices and SummarizedExperiment is supported. For 
-grouping variables such as batches, the basic method expects vectors, while 
-the SummarizedExperiment method expects the names of the respective columns 
-in PeakTabFilled. The basic method returns a list with the aligned peak 
-table and information about the process, whereas the SummarizedExperiment 
-method assigns the aligned peak table to the object supplied to 
-PeakTabFilled.
+A basic method with matrices (samples as rows) and SummarizedExperiment is 
+supported. For grouping variables such as batches, the basic method expects 
+vectors, while the SummarizedExperiment method expects the names of the 
+respective columns in PeakTabFilled. The basic method returns a list with 
+the aligned peak table and information about the process, whereas the 
+SummarizedExperiment method assigns the aligned peak table to the object 
+supplied to PeakTabFilled.
 }
 \examples{
 \dontshow{
