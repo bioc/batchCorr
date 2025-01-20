@@ -6,6 +6,8 @@
 \alias{correctDrift,SummarizedExperiment-method}
 \title{Within-batch signal intensity drift correction}
 \usage{
+correctDrift(peakTable, ...)
+
 \S4method{correctDrift}{ANY}(
   peakTable,
   injections,
@@ -25,6 +27,8 @@
 }
 \arguments{
 \item{peakTable}{SummarizedExperiment object or matrix}
+
+\item{...}{parameters with same behavior across methods}
 
 \item{injections}{character scalar or numeric, injection order}
 
@@ -56,8 +60,6 @@ assays}
 
 \item{name}{character scalar, name of the resultant assay in case of multiple
 assays}
-
-\item{...}{parameters with same behavior across methods}
 }
 \value{
 A SummarizedExperiment object with the corrected matrix or a list, 

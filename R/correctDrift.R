@@ -195,6 +195,8 @@ NULL
     return(Corr)
 }
 
+#' @export
+#' @rdname correctDrift
 setGeneric("correctDrift", signature = c("peakTable"),
     function(peakTable, ...) standardGeneric("correctDrift"))
 

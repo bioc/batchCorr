@@ -6,6 +6,8 @@
 \alias{alignBatches,SummarizedExperiment,SummarizedExperiment-method}
 \title{Between-batch alignment of features}
 \usage{
+alignBatches(PeakTabNoFill, PeakTabFilled, ...)
+
 \S4method{alignBatches}{ANY,ANY}(
   peakInfo,
   PeakTabNoFill,
@@ -34,12 +36,14 @@
 )
 }
 \arguments{
-\item{peakInfo}{matrix with mz and rt in columns 1:2 (see e.g. ?peakInfo)}
-
 \item{PeakTabNoFill}{SummarizedExperiment object or matrix before gap-filling}
 
 \item{PeakTabFilled}{SummarizedExperiment object or matrix without missing 
 values}
+
+\item{...}{parameters with same behavior across methods}
+
+\item{peakInfo}{matrix with mz and rt in columns 1:2 (see e.g. ?peakInfo)}
 
 \item{batches}{character scalar or factor, batch labels}
 
@@ -71,8 +75,6 @@ multiple assays}
 \item{mz_col}{character scalar, name of column containing mass information}
 
 \item{rt_col}{character scalar, name of column for retention time}
-
-\item{...}{parameters with same behavior across methods}
 }
 \value{
 a SummarizedExperiment object as PeakTabFill with the the aligned 
