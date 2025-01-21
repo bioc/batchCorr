@@ -141,6 +141,8 @@ NULL
     )
 }
 
+#' @rdname alignBatches
+#' @export
 setGeneric("alignBatches", signature = c("PeakTabNoFill", "PeakTabFilled"),
     function(PeakTabNoFill, PeakTabFilled, ...) standardGeneric("alignBatches"))
 

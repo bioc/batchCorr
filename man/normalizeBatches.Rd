@@ -6,6 +6,8 @@
 \alias{normalizeBatches,SummarizedExperiment-method}
 \title{Between-batch normalisation}
 \usage{
+normalizeBatches(peakTableCorr, ...)
+
 \S4method{normalizeBatches}{ANY}(
   peakTableCorr,
   batches,
@@ -21,6 +23,8 @@
 }
 \arguments{
 \item{peakTableCorr}{SummarizedExperiment object or matrix}
+
+\item{...}{parameters with same behavior across methods}
 
 \item{batches}{character scalar or factor, batch labels}
 
@@ -47,8 +51,6 @@ assays}
 
 \item{name}{character scalar, name of the resultant assay in case of 
 multiple assays}
-
-\item{...}{parameters with same behavior across methods}
 }
 \value{
 An list object containing:
