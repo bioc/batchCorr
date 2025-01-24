@@ -16,6 +16,6 @@ Suggests: BiocStyle, knitr, testthat
 LazyData: FALSE
 RoxygenNote: 7.3.2
 Encoding: UTF-8
-URL: https://gitlab.com/CarlBrunius/batchCorr
-BugReports: https://gitlab.com/CarlBrunius/batchCorr/-/issues
+URL: https://github.com/MetaboComp/batchCorr
+BugReports: https://github.com/MetaboComp/batchCorr/issues
 VignetteBuilder: knitr
