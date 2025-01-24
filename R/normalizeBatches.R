@@ -273,6 +273,8 @@ NULL
     ))
 }
 
+#' @export
+#' @rdname normalizeBatches
 setGeneric("normalizeBatches", signature = c("peakTableCorr"),
     function(peakTableCorr, ...) standardGeneric("normalizeBatches")
 )
