@@ -1,0 +1,9 @@
+Changes in version 0.99.5
+- Submitted to Bioconductor
+- SummarizedExperiment-support
+- smaller example data
+- paralellization with BiocParallel
+- some breaking changes without a formal deprecation process
+- de-exported low-level functionality
+- remaining exports include the wrappers and utility functions used in the tutorial
+- fixed bugs
